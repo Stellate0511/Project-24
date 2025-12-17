@@ -268,6 +268,15 @@
         }
         @keyframes pulse { 50% { opacity: 0.7; box-shadow: 0 0 5px var(--primary-color); } }
 
+        /* 新增：提示抽牌的高亮样式（复用 Pulse 动画） */
+        .suggest {
+            background: var(--primary-color) !important; 
+            color: #000 !important; 
+            box-shadow: 0 0 20px var(--primary-color); 
+            animation: pulse 1.5s infinite;
+            border-color: #fff !important;
+        }
+
         #btn-all {
             display: none; 
             border-color: var(--primary-color); color: var(--primary-color);
@@ -367,6 +376,7 @@
                     </div>
                 </div>
                 <div class="menu-btns">
+                    <button onclick="getHint()">HINT</button>
                     <button onclick="startGame()">RESTART</button>
                     <button onclick="backToMenu()">MENU</button>
                 </div>
@@ -486,16 +496,17 @@
             let pool = [];
 
             if (cfg.deck === 'simple') {
-                // 简单模式：12的因数 (1,2,3,4,6,12) 概率翻倍（8张），其余4张
-                // 这些数字在凑24点时非常强力
-                const factors = [1, 2, 3, 4, 6, 12];
+                // 1 和 2 (4张)，防止很可能出现的无解
+                // 只有 3, 4, 6, 12 这四个最强力的乘法因数由 4 张增加到 8 张
+                const highProb = [3, 4, 6, 12]; 
+                
                 for (let i = 1; i <= 13; i++) {
-                    // 如果是因数放入8张，否则放入4张
-                    let count = factors.includes(i) ? 8 : 4;
+                    // 如果在高频列表中则放8张，否则(包括1和2)都放4张
+                    let count = highProb.includes(i) ? 8 : 4;
                     for (let k = 0; k < count; k++) pool.push(i);
                 }
-                // 简单模式不包含 14, 15
-            } 
+                // 简单模式依然不包含 14, 15
+            }
             else if (cfg.deck === 'classic') {
                 // 经典模式：纯粹扑克，1-13 各 4 张
                 for (let i = 1; i <= 13; i++) {
@@ -562,6 +573,8 @@
 
         function drawCards(n) {
             if(state.hand.length >= 10) return;
+            $('btn-draw').classList.remove('suggest');
+            setStatus("READY", "var(--secondary-color)");
 
             for(let i=0; i<n; i++) {
                 if(state.deck.length === 0) break;
@@ -893,7 +906,70 @@
             });
             if (list.firstChild) list.firstChild.click();
         }
-        
+
+        // --- 新增：提示功能 ---
+        function getHint() {
+            if (!state.active || !isDbReady) return;
+
+            // 先清理当前选择和之前的提示状态
+            clearSelection();
+            $('btn-draw').classList.remove('suggest');
+
+            const hand = state.hand;
+            const indices = hand.map((_, i) => i); // [0, 1, 2, ...]
+
+            // 依次尝试寻找 4张、3张、2张 的解 (优先找牌多的，消除得快)
+            // 如果你想优先找简单的，可以把顺序反过来: [2, 3, 4]
+            const trySizes = [4, 3, 2]; 
+
+            for (let r of trySizes) {
+                const combos = getCombinations(indices, r);
+                
+                for (let comboIndices of combos) {
+                    // 获取对应手牌
+                    let candidateCards = comboIndices.map(i => hand[i]);
+                    // 提取数值并排序，生成 Key
+                    let values = candidateCards.map(c => c.val).sort((a, b) => a - b);
+                    let key = values.join(',');
+
+                    // 查询数据库
+                    if (solutionDB.has(key)) {
+                        // 找到解了！选中这些牌
+                        candidateCards.forEach(c => toggleSelect(c.id));
+                        setStatus("SOLUTION FOUND", "var(--success-color)");
+                        return; // 结束函数
+                    }
+                }
+            }
+
+            // 如果运行到这里，说明当前手牌无解
+            if (state.hand.length < 10) {
+                setStatus("NO MOVES - DRAW CARD", "var(--primary-color)");
+                // 高亮 Draw 按钮
+                $('btn-draw').classList.add('suggest');
+            } else {
+                setStatus("DEADLOCK", "var(--alert-color)");
+            }
+        }
+
+        // 辅助函数：生成数组 arr 中取 k 个元素的所有组合
+        function getCombinations(arr, k) {
+            let i, subI, ret = [], sub, next;
+            for (i = 0; i < arr.length; i++) {
+                if (k === 1) {
+                    ret.push([arr[i]]);
+                } else {
+                    sub = getCombinations(arr.slice(i + 1), k - 1);
+                    for (subI = 0; subI < sub.length; subI++) {
+                        next = sub[subI];
+                        next.unshift(arr[i]);
+                        ret.push(next);
+                    }
+                }
+            }
+            return ret;
+        }
+
         async function loadData() {
             try {
                 setStatus("LOADING DATA...", "var(--primary-color)");
@@ -920,7 +996,7 @@
         }
         loadData();
 
-        // --- 新增：键盘事件监听 ---
+        // --- 键盘事件监听 ---
         document.addEventListener('keydown', (e) => {
             // 如果不在游戏活跃状态，或者正在显示遮罩层，不响应按键
             if (!state.active || $('game-over').style.display === 'flex' || $('review-ui').style.display === 'flex') return;
