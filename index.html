@@ -669,38 +669,59 @@
 
         function openReview() {
             $('review-ui').style.display = 'flex';
-            let list = $('review-list');
-            list.innerHTML = '';
             
+            let list = $('review-list');
+            let cardDisplay = $('review-display');
+            let solDisplay = $('review-sol');
+
+            // 1. 重置/清空界面 (防止显示上一局的残留)
+            list.innerHTML = '';
+            cardDisplay.innerHTML = '';
+            solDisplay.innerText = ''; 
+            
+            // 如果历史记录为空
+            if (state.history.length === 0) {
+                solDisplay.innerText = "NO RECORDS";
+                solDisplay.style.color = "var(--secondary-color)";
+                return;
+            }
+
+            // 2. 生成列表
             state.history.forEach((h, i) => {
                 let d = document.createElement('div');
                 d.className = 'log-entry';
-                // 如果是失败的记录，可以在列表里也标红 (可选)
                 if(h.status === 'fail') d.style.color = 'var(--alert-color)';
                 
                 d.innerText = `[${i+1}]  ${h.cards.join(' ')}`;
                 
-                d.onclick = () => {
-                    // 1. 显示选中的牌
-                    $('review-display').innerHTML = h.cards.map(v => 
+                // 点击事件
+                d.onclick = function() {
+                    // UI 高亮当前选中的行
+                    Array.from(list.children).forEach(child => child.classList.remove('active'));
+                    d.classList.add('active'); // CSS里已经写了 .active 的样式
+
+                    // 显示卡牌
+                    cardDisplay.innerHTML = h.cards.map(v => 
                         `<div class="card selected" style="cursor:default">${v}</div>`
                     ).join('');
                     
-                    // 2. 显示解法或无解提示
-                    const solDisplay = $('review-sol');
-                    
+                    // 显示解法
                     if (h.sol) {
-                        // 有解
                         solDisplay.innerText = h.sol;
                         solDisplay.style.color = "var(--primary-color)";
                     } else {
-                        // 无解 (因为我们只存了有解的进DB，查不到就是null)
-                        solDisplay.innerText = "NO SOLUTION / INVALID COMBINATION";
+                        solDisplay.innerText = "NO SOLUTION / INVALID";
                         solDisplay.style.color = "var(--alert-color)";
                     }
                 };
+                
                 list.appendChild(d);
             });
+
+            // 3. 自动选中第一项 (如果有)
+            if (list.firstChild) {
+                list.firstChild.click();
+            }
         }
         // --- 读取并解析 database.txt (优化版) ---
         async function loadData() {
