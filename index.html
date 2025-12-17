@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PROJECT: 24</title>
+    <style>
+        :root {
+            --bg-color: #020408;
+            --win-bg: #050a14;
+            --primary-color: #00f3ff;
+            --secondary-color: #005f73;
+            --alert-color: #ff2a6d;
+            --success-color: #00ff9d;
+            --text-color: #e0fbfc;
+            --card-w: 65px;
+            --card-h: 95px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at center, #0a1525 0%, #000 100%);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- 主窗口 --- */
+        #main-window {
+            width: 95%;
+            max-width: 800px;
+            height: 90vh; 
+            max-height: 750px;
+            min-height: 500px; 
+            background: var(--win-bg);
+            border: 1px solid var(--secondary-color);
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.08);
+            position: relative;
+            display: flex;
+            flex-direction: column; /* 垂直排列：内容 + 页脚 */
+        }
+
+        /* 装饰角标 */
+        #main-window::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 20px; height: 20px;
+            border-top: 2px solid var(--primary-color); border-left: 2px solid var(--primary-color); z-index: 10;
+        }
+        #main-window::after {
+            content: ''; position: absolute; bottom: 0; right: 0; width: 20px; height: 20px;
+            border-bottom: 2px solid var(--primary-color); border-right: 2px solid var(--primary-color); z-index: 10;
+        }
+
+        button {
+            background: rgba(0, 95, 115, 0.15);
+            border: 1px solid var(--secondary-color);
+            color: var(--text-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            text-transform: uppercase;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: var(--primary-color); color: var(--bg-color); box-shadow: 0 0 10px var(--primary-color);
+        }
+        button:disabled {
+            opacity: 0.3; cursor: not-allowed; border-color: #333; color: #666; background: transparent;
+        }
+        button.active {
+            background: var(--primary-color); color: var(--bg-color);
+        }
+
+        /* --- 启动菜单 (改为 Flex Item) --- */
+        #start-screen {
+            /* 移除 absolute，改为占据剩余空间 */
+            flex: 1;
+            width: 100%;
+            background: rgba(5, 10, 20, 0.98);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        h1 {
+            font-size: 2.2rem; color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color);
+            margin-bottom: 2rem; letter-spacing: 4px; border-bottom: 2px solid;
+            text-align: center;
+        }
+        .config-group { margin-bottom: 20px; text-align: center; width: 85%; }
+        .config-title { color: var(--secondary-color); font-size: 0.7rem; margin-bottom: 8px; display: block; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn-group button { flex: 1; padding: 10px 0; font-size: 0.8rem; min-width: 80px; }
+        #start-btn { margin-top: 30px; font-size: 1.1rem; padding: 12px 50px; border-color: var(--primary-color); }
+
+        /* --- 游戏主界面 (改为 Flex Item) --- */
+        #game-ui { 
+            display: none; 
+            flex-direction: column; 
+            width: 100%; 
+            flex: 1; /* 关键：占据除 footer 外的所有空间 */
+            min-height: 0; /* 防止内容溢出撑破 flex 容器 */
+        }
+
+        /* 顶部状态栏 */
+        .top-bar {
+            min-height: 50px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(0, 243, 255, 0.03);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+            flex-shrink: 0;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .stat-group { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+        .stat-item { display: flex; flex-direction: row; gap: 8px; align-items: baseline; }
+        .stat-label { font-size: 0.7rem; color: var(--secondary-color); }
+        .stat-val { font-size: 1rem; font-weight: bold; min-width: 25px; }
+        .menu-btns { display: flex; gap: 10px; }
+        .menu-btns button { padding: 5px 12px; font-size: 0.7rem; height: 30px; }
+
+        @media (max-width: 600px) {
+            .top-bar { justify-content: center; padding: 10px; }
+            .stat-group { width: 100%; justify-content: space-around; border-bottom: 1px dashed rgba(0, 243, 255, 0.1); padding-bottom: 8px; margin-bottom: 2px; }
+            .menu-btns { width: 100%; justify-content: center; }
+            .stat-group { gap: 10px; }
+            h1 { font-size: 1.8rem; }
+        }
+
+        /* 进度条 */
+        .progress-area {
+            height: 4px; width: 100%; background: #111; position: relative; flex-shrink: 0;
+        }
+        #timer-bar { height: 100%; background: var(--primary-color); width: 0%; transition: width 0.1s linear; }
+
+        /* 卡牌区 */
+        #card-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* 卡牌 */
+        .card {
+            width: var(--card-w); height: var(--card-h);
+            border: 1px solid var(--secondary-color);
+            background: rgba(8, 20, 30, 0.6); 
+            color: var(--secondary-color);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; font-weight: bold;
+            cursor: pointer; position: relative; 
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+            user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .card:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--primary-color); color: var(--primary-color); }
+        .card.selected {
+            transform: translateY(-12px); border-color: #fff; color: #fff;
+            background: rgba(0, 243, 255, 0.25); box-shadow: 0 0 15px var(--primary-color); z-index: 5;
+        }
+
+        /* 底部控制栏 */
+        .bottom-bar {
+            min-height: 70px; height: auto;
+            display: flex; align-items: center; justify-content: flex-end;
+            gap: 15px; padding: 10px 20px;
+            border-top: 1px solid rgba(0, 243, 255, 0.1);
+            background: rgba(0,0,0,0.2);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        #msg-display {
+            margin-right: auto; color: var(--secondary-color); font-size: 0.8rem; letter-spacing: 2px;
+            width: 100%; text-align: center; margin-bottom: 5px;
+        }
+        @media (min-width: 601px) { #msg-display { width: auto; margin-bottom: 0; text-align: left; } }
+        
+        #btn-exec { min-width: 100px; }
+        #btn-exec.ready {
+            background: var(--primary-color); color: #000; box-shadow: 0 0 20px var(--primary-color); animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 50% { opacity: 0.7; box-shadow: 0 0 5px var(--primary-color); } }
+
+        /* --- 新增：底部安全区 / Footer --- */
+        .footer-bar {
+            height: 40px; /* 固定高度作为缓冲 */
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-top: 1px solid rgba(0, 243, 255, 0.05);
+            background: rgba(0, 0, 0, 0.4);
+            
+            color: var(--secondary-color);
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+            animation: text-breathe 4s infinite ease-in-out;
+        }
+
+        @keyframes text-breathe {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; text-shadow: 0 0 8px var(--primary-color); }
+        }
+
+        /* --- 弹窗 --- */
+        #game-over, #review-ui {
+            display: none; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(2, 4, 8, 0.98); z-index: 999;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .title-success { font-size: 3rem; color: var(--success-color); text-shadow: 0 0 20px var(--success-color); margin-bottom: 10px; text-align: center; }
+        .title-failure { font-size: 3rem; color: var(--alert-color); text-shadow: 0 0 20px var(--alert-color), 0 0 10px var(--alert-color); margin-bottom: 10px; text-align: center; }
+        .end-stat { font-size: 1rem; color: var(--text-color); margin-bottom: 5px; }
+
+        /* 复盘 */
+        #review-ui { align-items: stretch; flex-direction: row; background: #000; }
+        #review-list { width: 180px; border-right: 1px solid #333; overflow-y: auto; background: rgba(0, 243, 255, 0.02); }
+        .log-entry { padding: 15px; border-bottom: 1px solid #222; font-size: 0.75rem; color: #666; cursor: pointer; text-align: right; }
+        .log-entry:hover, .log-entry.active { background: #111; color: var(--primary-color); border-right: 3px solid var(--primary-color); }
+        #review-detail { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #review-display { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+
+    </style>
+</head>
+<body>
+
+    <div id="main-window">
+        
+        <!-- 启动菜单 -->
+        <div id="start-screen">
+            <h1>PROJECT: 24</h1>
+            
+            <div class="config-group">
+                <span class="config-title">DATASET (牌库)</span>
+                <div class="btn-group" id="opt-deck">
+                    <button class="active" data-val="standard">标准</button>
+                    <button data-val="hard">困难</button>
+                    <button data-val="hell" style="color:var(--alert-color)">地狱</button>
+                </div>
+            </div>
+
+            <div class="config-group">
+                <span class="config-title">TIMER (计时)</span>
+                <div class="btn-group" id="opt-time">
+                    <button class="active" data-val="endless">无尽</button>
+                    <button data-val="hourglass">沙漏</button>
+                    <button data-val="breathing">呼吸</button>
+                </div>
+            </div>
+
+            <div class="config-group">
+                <span class="config-title">TOLERANCE (机会)</span>
+                <div class="btn-group" id="opt-life">
+                    <button data-val="casual">休闲 (3)</button>
+                    <button class="active" data-val="challenge">挑战 (1)</button>
+                    <button data-val="extreme">极限 (0)</button>
+                </div>
+            </div>
+
+            <button id="start-btn">INITIATE</button>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-ui">
+            <div class="top-bar">
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">DECK:</span>
+                        <span class="stat-val" id="deck-val">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">TIME:</span>
+                        <span class="stat-val" id="time-val">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">CHANCES:</span>
+                        <span class="stat-val" id="chance-val" style="color:var(--alert-color)">--</span>
+                    </div>
+                </div>
+                <div class="menu-btns">
+                    <button onclick="startGame()">RESTART</button>
+                    <button onclick="backToMenu()">MENU</button>
+                </div>
+            </div>
+
+            <div class="progress-area">
+                <div id="timer-bar"></div>
+            </div>
+
+            <div id="card-container">
+                <!-- Cards Here -->
+            </div>
+
+            <div class="bottom-bar">
+                <div id="msg-display">SYSTEM READY</div>
+                <button id="btn-draw">DRAW</button>
+                <button id="btn-exec" disabled>EXECUTE</button>
+            </div>
+        </div>
+
+        <!-- Footnote / Safe Area Spacer -->
+        <div class="footer-bar">
+            BUILD: 2025 // CREATOR: 点缀星空
+        </div>
+
+        <!-- 结算界面 (胜负通用) -->
+        <div id="game-over">
+            <div id="end-title" class="title-failure">FAILURE</div>
+            <div id="end-msg" style="margin-bottom:20px; letter-spacing:1px; color:#888">SIGNAL LOST</div>
+            <div id="end-time" class="end-stat" style="margin-bottom: 30px; font-weight: bold; color: var(--primary-color)">FINAL TIME: 00:00</div>
+            
+            <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">
+                <button onclick="openReview()">REVIEW</button>
+                <button onclick="startGame()">RETRY</button>
+                <button onclick="backToMenu()">MENU</button>
+            </div>
+        </div>
+
+        <!-- 复盘 -->
+        <div id="review-ui">
+            <div id="review-list"></div>
+            <div id="review-detail">
+                <div id="review-display"></div>
+                <div style="color:#555; font-size:0.7rem; margin-bottom:15px;">SOLUTION DATA</div>
+                <div id="review-sol" style="font-size:1.1rem; color:var(--primary-color)">[DATA PENDING]</div>
+                <button onclick="$('review-ui').style.display='none'" style="margin-top:30px; border-color:var(--alert-color)">CLOSE</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const cfg = { deck:'standard', time:'endless', life:'challenge' };
+        const state = {
+            deck: [],
+            hand: [],
+            selection: [],
+            history: [],
+            chances: 0, 
+            timer: 0,
+            interval: null,
+            breath: 10.0,
+            active: false
+        };
+
+        const $ = (id) => document.getElementById(id);
+        
+        // --- Setup ---
+        document.querySelectorAll('.btn-group button').forEach(b => {
+            b.onclick = (e) => {
+                const p = e.target.parentElement;
+                p.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+                e.target.classList.add('active');
+                if(p.id==='opt-deck') cfg.deck = e.target.dataset.val;
+                if(p.id==='opt-time') cfg.time = e.target.dataset.val;
+                if(p.id==='opt-life') cfg.life = e.target.dataset.val;
+            }
+        });
+
+        $('start-btn').onclick = startGame;
+        $('btn-draw').onclick = () => { drawCards(1); };
+        $('btn-exec').onclick = execCards;
+
+        function startGame() {
+            $('start-screen').style.display = 'none';
+            $('game-over').style.display = 'none';
+            $('review-ui').style.display = 'none';
+            $('game-ui').style.display = 'flex';
+
+            state.history = [];
+            state.hand = [];
+            state.selection = [];
+            state.active = true;
+
+            // 1. Deck Init
+            let pool = [];
+            for(let i=1; i<=13; i++) pool.push(i,i,i,i);
+            pool.push(14,15); 
+
+            state.deck = pool.filter(n => {
+                if(cfg.deck === 'hard') return n!==3 && n!==6;
+                if(cfg.deck === 'hell') return ![2,3,4,6,8,12].includes(n);
+                return true;
+            });
+            state.deck.sort(() => Math.random() - 0.5);
+
+            // 2. Chances
+            if(cfg.life === 'casual') state.chances = 3;
+            else if(cfg.life === 'challenge') state.chances = 1;
+            else state.chances = 0;
+            updateStats();
+
+            // 3. Timer
+            clearInterval(state.interval);
+            if(cfg.time === 'hourglass') state.timer = 60;
+            else if(cfg.time === 'breathing') state.breath = 10.0;
+            else state.timer = 0;
+
+            state.interval = setInterval(tick, 100);
+
+            // 4. Draw
+            drawCards(10);
+            setStatus("SYSTEM READY", "var(--secondary-color)");
+        }
+
+        function tick() {
+            if(!state.active) return;
+
+            if(cfg.time === 'endless') {
+                state.timer += 0.1;
+                $('time-val').innerText = fmtTime(state.timer);
+            }
+            else if(cfg.time === 'hourglass') {
+                state.timer -= 0.1;
+                $('time-val').innerText = "00:" + Math.ceil(state.timer).toString().padStart(2,'0');
+                let pct = (state.timer / 60) * 100;
+                $('timer-bar').style.width = pct + "%";
+                if(state.timer <= 0) gameOver("TIME EXHAUSTED", false);
+            }
+            else if(cfg.time === 'breathing') {
+                state.breath -= 0.1;
+                let pct = (state.breath / 10.0) * 100;
+                $('timer-bar').style.width = pct + "%";
+                $('time-val').innerText = state.breath.toFixed(1);
+                
+                if(state.breath <= 3) $('timer-bar').style.backgroundColor = 'var(--alert-color)';
+                else $('timer-bar').style.backgroundColor = 'var(--primary-color)';
+
+                if(state.breath <= 0) {
+                    fail("TIMEOUT");
+                    state.breath = 10.0;
+                }
+            }
+        }
+
+        function fmtTime(s) {
+            let m = Math.floor(s/60);
+            let sec = Math.floor(s%60);
+            return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        }
+
+        function drawCards(n) {
+            if(state.hand.length >= 10) return;
+
+            for(let i=0; i<n; i++) {
+                if(state.deck.length === 0) break;
+                if(state.hand.length >= 10) break;
+                let val = state.deck.pop();
+                state.hand.push({ id: Math.random(), val: val });
+            }
+            sortHand();
+            render();
+            updateDrawBtn();
+        }
+
+        function sortHand() {
+            state.hand.sort((a,b) => a.val - b.val);
+        }
+
+        function toggleSelect(id) {
+            const idx = state.selection.indexOf(id);
+            if (idx > -1) {
+                state.selection.splice(idx, 1);
+            } else {
+                if (state.selection.length >= 4) state.selection.shift();
+                state.selection.push(id);
+            }
+            render();
+        }
+
+        function render() {
+            const container = $('card-container');
+            container.innerHTML = '';
+            
+            state.hand.forEach(c => {
+                let div = document.createElement('div');
+                div.innerText = c.val;
+                div.onclick = () => toggleSelect(c.id);
+                if (state.selection.includes(c.id)) div.className = 'card selected';
+                else div.className = 'card';
+                container.appendChild(div);
+            });
+
+            // Stats
+            $('deck-val').innerText = state.deck.length;
+            
+            let sc = state.selection.length;
+            let btn = $('btn-exec');
+            if(sc >= 2 && sc <= 4) {
+                btn.disabled = false;
+                btn.classList.add('ready');
+                btn.innerText = "EXECUTE";
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('ready');
+                btn.innerText = sc < 2 ? "SELECT (2-4)" : "FULL";
+            }
+            updateDrawBtn();
+        }
+
+        function updateDrawBtn() {
+            let btn = $('btn-draw');
+            if(state.hand.length >= 10) {
+                btn.disabled = true;
+                btn.innerText = "MAX";
+            } else {
+                btn.disabled = false;
+                btn.innerText = "DRAW";
+            }
+            if(state.deck.length === 0) {
+                 btn.disabled = true;
+                 btn.innerText = "EMPTY";
+            }
+        }
+
+        function setStatus(msg, color) {
+            const el = $('msg-display');
+            el.innerText = msg;
+            el.style.color = color;
+        }
+
+        // --- Execution ---
+
+        function execCards() {
+            if(state.selection.length < 2) return;
+
+            // Mock Validation (Always True for Demo)
+            let valid = true;
+
+            if(valid) {
+                let selectedCards = state.hand.filter(c => state.selection.includes(c.id));
+                state.history.push({ 
+                    cards: selectedCards.map(c=>c.val), 
+                    sol: "VALIDATED" 
+                });
+
+                state.hand = state.hand.filter(c => !state.selection.includes(c.id));
+                state.selection = [];
+                
+                if(cfg.time === 'breathing') state.breath = 10.0;
+
+                setStatus("CALCULATION SUCCESS", "var(--success-color)");
+                
+                // *** 胜利判断逻辑更新: 只要手牌空了就是赢 ***
+                if(state.hand.length === 0) {
+                    render(); // 清空手牌显示
+                    setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                } else {
+                    render();
+                    setTimeout(() => {
+                        if(state.active && state.hand.length > 0) setStatus("READY", "var(--secondary-color)");
+                    }, 800);
+                }
+
+            } else {
+                fail("INVALID");
+            }
+        }
+
+        function fail(reason) {
+            state.chances--;
+            updateStats();
+            
+            $('main-window').style.transform = "translateX(5px)";
+            setTimeout(()=>$('main-window').style.transform="none", 50);
+
+            if(state.chances < 0) {
+                gameOver(reason, false);
+            }
+        }
+
+        function updateStats() {
+            let disp = state.chances < 0 ? 0 : state.chances;
+            $('chance-val').innerText = disp;
+        }
+
+        function gameOver(msg, win) {
+            state.active = false;
+            clearInterval(state.interval);
+            
+            const go = $('game-over');
+            go.style.display = 'flex';
+            
+            const title = $('end-title');
+            title.innerText = win ? "SUCCESS" : "FAILURE";
+            // 使用修正后的 title-failure
+            title.className = win ? "title-success" : "title-failure";
+            
+            $('end-msg').innerText = msg;
+            
+            const timeEl = $('end-time');
+            
+            if(cfg.time !== 'breathing') {
+                // 无尽或沙漏模式：显示时间
+                timeEl.innerText = "FINAL TIME: " + (cfg.time==='endless' ? fmtTime(state.timer) : fmtTime(60 - state.timer));
+            } else {
+                // 呼吸模式
+                if (win) {
+                    timeEl.innerText = "SURVIVED";
+                } else {
+                    // 失败时不显示 Survived，显示终止
+                    timeEl.innerText = "TERMINATED";
+                }
+            }
+        }
+
+        function backToMenu() {
+            $('game-ui').style.display = 'none';
+            $('game-over').style.display = 'none';
+            $('start-screen').style.display = 'flex';
+            state.active = false;
+            clearInterval(state.interval);
+        }
+
+        function openReview() {
+            $('review-ui').style.display = 'flex';
+            let list = $('review-list');
+            list.innerHTML = '';
+            state.history.forEach((h, i) => {
+                let d = document.createElement('div');
+                d.className = 'log-entry';
+                d.innerText = `[${i+1}]  ${h.cards.join(' ')}`;
+                d.onclick = () => {
+                    $('review-display').innerHTML = h.cards.map(v => 
+                        `<div class="card selected" style="cursor:default">${v}</div>`
+                    ).join('');
+                };
+                list.appendChild(d);
+            });
+        }
+
+    </script>
+</body>
+</html>
