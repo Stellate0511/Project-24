@@ -156,6 +156,25 @@
             padding: 15px;
             overflow-y: auto;
             position: relative;
+            touch-action: none; /* 关键：禁止浏览器处理该区域的滑动手势 */
+            user-select: none;
+        }
+
+        body, button, .card {
+            touch-action: manipulation; /* 允许点击和滚动，但禁用双击缩放 */
+        }
+
+        #btn-all {
+            display: none; /* 默认隐藏 */
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            margin-right: 10px; /* 与其他按钮拉开距离 */
+        }
+        #btn-all:hover {
+            background: var(--primary-color);
+            color: #000;
         }
 
         /* 卡牌 */
@@ -175,6 +194,34 @@
         .card.selected {
             transform: translateY(-12px); border-color: #fff; color: #fff;
             background: rgba(0, 243, 255, 0.25); box-shadow: 0 0 15px var(--primary-color); z-index: 5;
+        }
+
+        /* --- 新增：卡牌入场动画 --- */
+        .card.anim-enter {
+            animation: card-entry 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            /* 初始状态：不可见，防止闪烁 */
+            opacity: 0; 
+        }
+
+        @keyframes card-entry {
+            0% {
+                opacity: 0;
+                transform: translateY(-60px) scale(1.1); /* 从上方60px处落下，稍微放大 */
+                background-color: var(--primary-color);  /* 高亮：完全变成青色 */
+                color: #000;
+                box-shadow: 0 0 30px var(--primary-color); /* 强光晕 */
+                border-color: var(--primary-color);
+            }
+            50% {
+                opacity: 1;
+                /* 变回正常颜色，但保持一点光晕 */
+                background-color: rgba(0, 243, 255, 0.3); 
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1); /* 归位 */
+                /* 属性复原交给 .card 默认样式，这里不需要强制写死颜色，只需 transform 归位 */
+            }
         }
 
         /* 底部控制栏 */
@@ -312,6 +359,7 @@
 
             <div class="bottom-bar">
                 <div id="msg-display">SYSTEM READY</div>
+                <button id="btn-all" onclick="selectAllAndExec()">ALL IN</button>
                 <button id="btn-draw">DRAW</button>
                 <button id="btn-exec" disabled>EXECUTE</button>
             </div>
@@ -473,15 +521,27 @@
         function drawCards(n) {
             if(state.hand.length >= 10) return;
 
+            let drawnCount = 0;
             for(let i=0; i<n; i++) {
                 if(state.deck.length === 0) break;
                 if(state.hand.length >= 10) break;
+                
                 let val = state.deck.pop();
-                state.hand.push({ id: Math.random(), val: val });
+                // --- 修改点：增加 isNew 标记 ---
+                state.hand.push({ id: Math.random(), val: val, isNew: true });
+                drawnCount++;
             }
+            
+            // 依然保持排序，因为玩家需要看清大小
             sortHand();
             render();
             updateDrawBtn();
+
+            // --- 关键：渲染完一次后，马上把所有牌的 isNew 标记去掉 ---
+            // 这样下次点击卡牌(重新渲染)时，就不会再次播放入场动画了
+            setTimeout(() => {
+                state.hand.forEach(c => c.isNew = false);
+            }, 1000); // 1秒后清理，确保动画播完
         }
 
         function sortHand() {
@@ -503,12 +563,28 @@
             const container = $('card-container');
             container.innerHTML = '';
             
+            let newCardIndex = 0; 
+
             state.hand.forEach(c => {
                 let div = document.createElement('div');
                 div.innerText = c.val;
+                
+                // --- 修改点1：绑定 data-id 供滑动逻辑识别 ---
+                div.dataset.id = c.id; 
+
+                // 保持点击事件 (兼容鼠标操作)
                 div.onclick = () => toggleSelect(c.id);
-                if (state.selection.includes(c.id)) div.className = 'card selected';
-                else div.className = 'card';
+                
+                let cls = 'card';
+                if (state.selection.includes(c.id)) cls += ' selected';
+                
+                if (c.isNew) {
+                    cls += ' anim-enter';
+                    div.style.animationDelay = `${newCardIndex * 0.05}s`;
+                    newCardIndex++;
+                }
+
+                div.className = cls;
                 container.appendChild(div);
             });
 
@@ -526,6 +602,16 @@
                 btn.classList.remove('ready');
                 btn.innerText = sc < 2 ? "SELECT (2-4)" : "FULL";
             }
+
+            // --- 修改点2：ALL IN 按钮显示逻辑 ---
+            const btnAll = $('btn-all');
+            // 如果手牌数量在 2 到 4 之间，显示按钮
+            if (state.hand.length >= 2 && state.hand.length <= 4) {
+                btnAll.style.display = 'block';
+            } else {
+                btnAll.style.display = 'none';
+            }
+
             updateDrawBtn();
         }
 
@@ -723,6 +809,95 @@
                 list.firstChild.click();
             }
         }
+
+// --- 新增功能：滑动选择 (Swipe Selection) ---
+        let isSwiping = false;
+        let swipeTargetState = true; // true: 选中模式, false: 取消模式
+        let touchedCardsInGesture = new Set(); // 记录单次滑动中已经处理过的牌
+
+        const container = $('card-container');
+
+        // 触摸开始
+        container.addEventListener('touchstart', (e) => {
+            isSwiping = true;
+            touchedCardsInGesture.clear();
+            handleSwipe(e);
+        }, { passive: false }); // passive: false 允许 preventDefault
+
+        // 触摸移动
+        container.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+            e.preventDefault(); // 阻止滚动，保证滑动流畅
+            handleSwipe(e);
+        }, { passive: false });
+
+        // 触摸结束
+        container.addEventListener('touchend', () => {
+            isSwiping = false;
+            touchedCardsInGesture.clear();
+        });
+
+        // 处理核心逻辑
+        function handleSwipe(e) {
+            // 获取触摸点坐标 (处理多指触控，取第一个点)
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (!target) return;
+
+            // 找到对应的 .card 元素 (防止点到数字文字上)
+            const cardDiv = target.closest('.card');
+            
+            if (cardDiv) {
+                // 获取卡牌 ID (我们需要稍微修改 render 把 ID 绑在 DOM 上)
+                const cardId = parseFloat(cardDiv.dataset.id);
+                if (isNaN(cardId)) return;
+
+                // 如果这次滑动还没处理过这张牌
+                if (!touchedCardsInGesture.has(cardId)) {
+                    touchedCardsInGesture.add(cardId);
+
+                    // 如果是滑动的第一张牌，决定这次滑动的意图是“全选”还是“全取消”
+                    if (touchedCardsInGesture.size === 1) {
+                        const isSelected = state.selection.includes(cardId);
+                        swipeTargetState = !isSelected; // 如果当前选中，则意图是取消，反之亦然
+                    }
+
+                    // 执行选中/取消逻辑
+                    setCardSelection(cardId, swipeTargetState);
+                }
+            }
+        }
+
+        // 辅助：指定设置某张牌的选中状态
+        function setCardSelection(id, select) {
+            const idx = state.selection.indexOf(id);
+            if (select) {
+                // 选中逻辑：限制最多 4 张
+                if (idx === -1 && state.selection.length < 4) {
+                    state.selection.push(id);
+                    render(); // 刷新视图
+                }
+            } else {
+                // 取消逻辑
+                if (idx > -1) {
+                    state.selection.splice(idx, 1);
+                    render(); // 刷新视图
+                }
+            }
+        }
+
+        // --- 新增功能：ALL IN 逻辑 ---
+        function selectAllAndExec() {
+            // 选中所有手牌
+            state.selection = state.hand.map(c => c.id);
+            render();
+            // 稍微延迟一下，让玩家看到全选的视觉反馈，再执行
+            setTimeout(() => {
+                execCards();
+            }, 150);
+        }
+        
         // --- 读取并解析 database.txt (优化版) ---
         async function loadData() {
             try {
