@@ -407,7 +407,8 @@
             timer: 0,
             interval: null,
             breath: 10.0,
-            active: false
+            active: false,
+            totalTime: 0
         };
 
         const solutionDB = new Map();
@@ -450,6 +451,7 @@
             state.hand = [];
             state.selection = [];
             state.active = true;
+            state.totalTime = 0;
 
             // 1. Deck Init
             let pool = [];
@@ -471,7 +473,7 @@
 
             // 3. Timer
             clearInterval(state.interval);
-            if(cfg.time === 'hourglass') state.timer = 60;
+            if(cfg.time === 'hourglass') state.timer = 60.0; // 改为浮点数
             else if(cfg.time === 'breathing') state.breath = 10.0;
             else state.timer = 0;
 
@@ -485,13 +487,21 @@
         function tick() {
             if(!state.active) return;
 
+            // 所有模式都累加总游戏时长
+            state.totalTime += 0.1;
+
             if(cfg.time === 'endless') {
                 state.timer += 0.1;
-                $('time-val').innerText = fmtTime(state.timer);
+                $('time-val').innerText = fmtTime(state.timer); // 无限模式保持 mm:ss
             }
             else if(cfg.time === 'hourglass') {
                 state.timer -= 0.1;
-                $('time-val').innerText = "00:" + Math.ceil(state.timer).toString().padStart(2,'0');
+                
+                // --- 修改点：沙漏模式现在显示为 "59.9" 格式 ---
+                // 避免出现负数显示
+                let displayTime = Math.max(0, state.timer);
+                $('time-val').innerText = displayTime.toFixed(1);
+                
                 let pct = (state.timer / 60) * 100;
                 $('timer-bar').style.width = pct + "%";
                 if(state.timer <= 0) gameOver("TIME EXHAUSTED", false);
@@ -500,7 +510,7 @@
                 state.breath -= 0.1;
                 let pct = (state.breath / 10.0) * 100;
                 $('timer-bar').style.width = pct + "%";
-                $('time-val').innerText = state.breath.toFixed(1);
+                $('time-val').innerText = state.breath.toFixed(1); // 呼吸模式保持秒数格式
                 
                 if(state.breath <= 3) $('timer-bar').style.backgroundColor = 'var(--alert-color)';
                 else $('timer-bar').style.backgroundColor = 'var(--primary-color)';
@@ -731,18 +741,7 @@
             
             const timeEl = $('end-time');
             
-            if(cfg.time !== 'breathing') {
-                // 无尽或沙漏模式：显示时间
-                timeEl.innerText = "FINAL TIME: " + (cfg.time==='endless' ? fmtTime(state.timer) : fmtTime(60 - state.timer));
-            } else {
-                // 呼吸模式
-                if (win) {
-                    timeEl.innerText = "SURVIVED";
-                } else {
-                    // 失败时不显示 Survived，显示终止
-                    timeEl.innerText = "TERMINATED";
-                }
-            }
+            timeEl.innerText = "TOTAL TIME: " + fmtTime(state.totalTime);
         }
 
         function backToMenu() {
@@ -810,24 +809,29 @@
             }
         }
 
-// --- 新增功能：滑动选择 (Swipe Selection) ---
+        // --- 滑动选择逻辑 ---
         let isSwiping = false;
-        let swipeTargetState = true; // true: 选中模式, false: 取消模式
-        let touchedCardsInGesture = new Set(); // 记录单次滑动中已经处理过的牌
+        let swipeTargetState = true; 
+        let touchedCardsInGesture = new Set(); 
 
         const container = $('card-container');
 
         // 触摸开始
         container.addEventListener('touchstart', (e) => {
+            // 关键修复：阻止默认行为（防止滚动/点击判定），确保 touchmove 持续触发
+            if(e.cancelable) e.preventDefault();
+            
             isSwiping = true;
             touchedCardsInGesture.clear();
+            
+            // 立即处理起始点的状态
             handleSwipe(e);
-        }, { passive: false }); // passive: false 允许 preventDefault
+        }, { passive: false });
 
         // 触摸移动
         container.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
-            e.preventDefault(); // 阻止滚动，保证滑动流畅
+            if(e.cancelable) e.preventDefault(); // 再次确保阻止滚动
             handleSwipe(e);
         }, { passive: false });
 
@@ -837,33 +841,35 @@
             touchedCardsInGesture.clear();
         });
 
-        // 处理核心逻辑
+        // 触摸取消 (比如来电话了)
+        container.addEventListener('touchcancel', () => {
+            isSwiping = false;
+            touchedCardsInGesture.clear();
+        });
+
         function handleSwipe(e) {
-            // 获取触摸点坐标 (处理多指触控，取第一个点)
+            // 获取触摸点
             const touch = e.touches[0];
+            // 使用 elementFromPoint 获取当前手指下的元素
+            // 注意：这会穿透到最顶层的元素，如果手指在 Card 上，就是 Card
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             
             if (!target) return;
 
-            // 找到对应的 .card 元素 (防止点到数字文字上)
             const cardDiv = target.closest('.card');
             
             if (cardDiv) {
-                // 获取卡牌 ID (我们需要稍微修改 render 把 ID 绑在 DOM 上)
                 const cardId = parseFloat(cardDiv.dataset.id);
                 if (isNaN(cardId)) return;
 
-                // 如果这次滑动还没处理过这张牌
+                // 如果是本次滑动的 第一张有效牌，由它决定我们要“全选”还是“全取消”
+                if (touchedCardsInGesture.size === 0) {
+                    const isSelected = state.selection.includes(cardId);
+                    swipeTargetState = !isSelected;
+                }
+
                 if (!touchedCardsInGesture.has(cardId)) {
                     touchedCardsInGesture.add(cardId);
-
-                    // 如果是滑动的第一张牌，决定这次滑动的意图是“全选”还是“全取消”
-                    if (touchedCardsInGesture.size === 1) {
-                        const isSelected = state.selection.includes(cardId);
-                        swipeTargetState = !isSelected; // 如果当前选中，则意图是取消，反之亦然
-                    }
-
-                    // 执行选中/取消逻辑
                     setCardSelection(cardId, swipeTargetState);
                 }
             }
