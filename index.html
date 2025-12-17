@@ -189,6 +189,8 @@
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
             user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+            
+            touch-action: none;
         }
         .card:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--primary-color); color: var(--primary-color); }
         .card.selected {
@@ -531,44 +533,86 @@
         function drawCards(n) {
             if(state.hand.length >= 10) return;
 
-            let drawnCount = 0;
             for(let i=0; i<n; i++) {
                 if(state.deck.length === 0) break;
                 if(state.hand.length >= 10) break;
                 
                 let val = state.deck.pop();
-                // --- 修改点：增加 isNew 标记 ---
+                // 标记为新牌
                 state.hand.push({ id: Math.random(), val: val, isNew: true });
-                drawnCount++;
             }
             
-            // 依然保持排序，因为玩家需要看清大小
             sortHand();
-            render();
+            render(); // 第一次渲染：带动画类
             updateDrawBtn();
 
-            // --- 关键：渲染完一次后，马上把所有牌的 isNew 标记去掉 ---
-            // 这样下次点击卡牌(重新渲染)时，就不会再次播放入场动画了
-            setTimeout(() => {
-                state.hand.forEach(c => c.isNew = false);
-            }, 1000); // 1秒后清理，确保动画播完
+            // --- 关键修改 ---
+            // 渲染之后，立刻把数据里的 isNew 标记去掉。
+            // 这样 DOM 上的动画会继续播放，但如果你点击屏幕触发下一次 render()，
+            // 生成的新 DOM 就不会再有 anim-enter 类，动画就不会重播了 (会直接跳到选中/非选中状态)
+            state.hand.forEach(c => c.isNew = false);
         }
 
         function sortHand() {
             state.hand.sort((a,b) => a.val - b.val);
         }
 
-        function toggleSelect(id) {
-            const idx = state.selection.indexOf(id);
-            if (idx > -1) {
-                state.selection.splice(idx, 1);
+        // 辅助：仅切换视觉状态，不重绘整个 DOM
+        function updateCardVisual(id) {
+            // 找到对应的 DOM 元素
+            const cardDiv = document.querySelector(`.card[data-id="${id}"]`);
+            if (!cardDiv) return;
+
+            const isSelected = state.selection.includes(id);
+            
+            if (isSelected) {
+                cardDiv.classList.add('selected');
             } else {
-                if (state.selection.length >= 4) state.selection.shift();
-                state.selection.push(id);
+                cardDiv.classList.remove('selected');
             }
-            render();
+
+            // 更新按钮状态 (Execute 按钮可用性)
+            let sc = state.selection.length;
+            let btn = $('btn-exec');
+            if(sc >= 2 && sc <= 4) {
+                btn.disabled = false;
+                btn.classList.add('ready');
+                btn.innerText = "EXECUTE";
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('ready');
+                btn.innerText = sc < 2 ? "SELECT (2-4)" : "FULL";
+            }
         }
 
+        function setCardSelection(id, shouldSelect) {
+            const idx = state.selection.indexOf(id);
+            
+            if (shouldSelect) {
+                // 选中逻辑：限制最多 4 张
+                if (idx === -1 && state.selection.length < 4) {
+                    state.selection.push(id);
+                    // --- 修改点：不再调用 render()，而是只更新样式 ---
+                    updateCardVisual(id);
+                }
+            } else {
+                // 取消逻辑
+                if (idx > -1) {
+                    state.selection.splice(idx, 1);
+                    // --- 修改点：不再调用 render()，而是只更新样式 ---
+                    updateCardVisual(id);
+                }
+            }
+        }
+
+        // --- 同时也需要修改一下 toggleSelect 给鼠标点击用 ---
+        // 鼠标点击也应该走这个“轻量级”更新，而不是重绘
+        function toggleSelect(id) {
+            const idx = state.selection.indexOf(id);
+            // 判断当前意图：如果已选中则取消，未选中则选中
+            const targetState = (idx === -1);
+            setCardSelection(id, targetState);
+        }
         function render() {
             const container = $('card-container');
             container.innerHTML = '';
@@ -818,21 +862,21 @@
 
         // 触摸开始
         container.addEventListener('touchstart', (e) => {
-            // 关键修复：阻止默认行为（防止滚动/点击判定），确保 touchmove 持续触发
+            // 必须阻止默认行为，否则从卡牌开始滑动时，Android/iOS 可能会劫持事件流
             if(e.cancelable) e.preventDefault();
             
             isSwiping = true;
             touchedCardsInGesture.clear();
             
-            // 立即处理起始点的状态
-            handleSwipe(e);
+            // 立即处理起始点
+            handleSwipe(e, true); // true 表示这是起始动作
         }, { passive: false });
 
         // 触摸移动
         container.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
-            if(e.cancelable) e.preventDefault(); // 再次确保阻止滚动
-            handleSwipe(e);
+            if(e.cancelable) e.preventDefault();
+            handleSwipe(e, false);
         }, { passive: false });
 
         // 触摸结束
@@ -841,17 +885,14 @@
             touchedCardsInGesture.clear();
         });
 
-        // 触摸取消 (比如来电话了)
+        // 触摸取消
         container.addEventListener('touchcancel', () => {
             isSwiping = false;
             touchedCardsInGesture.clear();
         });
 
-        function handleSwipe(e) {
-            // 获取触摸点
+        function handleSwipe(e, isStart) {
             const touch = e.touches[0];
-            // 使用 elementFromPoint 获取当前手指下的元素
-            // 注意：这会穿透到最顶层的元素，如果手指在 Card 上，就是 Card
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             
             if (!target) return;
@@ -862,12 +903,15 @@
                 const cardId = parseFloat(cardDiv.dataset.id);
                 if (isNaN(cardId)) return;
 
-                // 如果是本次滑动的 第一张有效牌，由它决定我们要“全选”还是“全取消”
+                // 核心逻辑：如果是本次手势碰到的 第一张牌
+                // 我们通过它来确定“这次滑动是想全选，还是全取消”
+                // 无论这张牌是在 touchstart 碰到的，还是滑动了一段距离后碰到的第一张牌
                 if (touchedCardsInGesture.size === 0) {
                     const isSelected = state.selection.includes(cardId);
-                    swipeTargetState = !isSelected;
+                    swipeTargetState = !isSelected; // 意图取反
                 }
 
+                // 如果这张牌还没被处理过，执行操作
                 if (!touchedCardsInGesture.has(cardId)) {
                     touchedCardsInGesture.add(cardId);
                     setCardSelection(cardId, swipeTargetState);
