@@ -362,6 +362,8 @@
             active: false
         };
 
+        const solutionDB = new Map();
+        let isDbReady = false;
         const $ = (id) => document.getElementById(id);
         
         // --- Setup ---
@@ -552,37 +554,61 @@
 
         function execCards() {
             if(state.selection.length < 2) return;
+            if(!isDbReady) {
+                setStatus("DB NOT READY", "var(--alert-color)");
+                return;
+            }
 
-            // Mock Validation (Always True for Demo)
-            let valid = true;
+            // 1. 获取玩家选中的牌
+            let selectedCards = state.hand.filter(c => state.selection.includes(c.id));
+            let values = selectedCards.map(c => c.val);
 
-            if(valid) {
-                let selectedCards = state.hand.filter(c => state.selection.includes(c.id));
+            // 2. 生成 Key
+            values.sort((a, b) => a - b);
+            const key = values.join(',');
+
+            // 3. 查表
+            const resultLine = solutionDB.get(key);
+            
+            // 4. 处理逻辑
+            if(resultLine) {
+                // --- 成功 ---
+                setStatus("CALCULATION VALID", "var(--success-color)");
+                if(cfg.time === 'breathing') state.breath = 10.0;
+                
+                // 记录成功解法
                 state.history.push({ 
                     cards: selectedCards.map(c=>c.val), 
-                    sol: "VALIDATED" 
+                    sol: resultLine,
+                    status: 'success' // 标记状态
                 });
-
-                state.hand = state.hand.filter(c => !state.selection.includes(c.id));
-                state.selection = [];
-                
-                if(cfg.time === 'breathing') state.breath = 10.0;
-
-                setStatus("CALCULATION SUCCESS", "var(--success-color)");
-                
-                // *** 胜利判断逻辑更新: 只要手牌空了就是赢 ***
-                if(state.hand.length === 0) {
-                    render(); // 清空手牌显示
-                    setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
-                } else {
-                    render();
-                    setTimeout(() => {
-                        if(state.active && state.hand.length > 0) setStatus("READY", "var(--secondary-color)");
-                    }, 800);
-                }
-
             } else {
-                fail("INVALID");
+                // --- 失败 (查不到或无解) ---
+                fail("INVALID / NO SOLUTION"); // 扣血
+                
+                // 记录失败，解法标记为 null
+                state.history.push({ 
+                    cards: selectedCards.map(c=>c.val), 
+                    sol: null, 
+                    status: 'fail' // 标记状态
+                });
+            }
+
+            // 5. 公共操作：移除手牌 (无论成功失败，牌都打出去了)
+            state.hand = state.hand.filter(c => !state.selection.includes(c.id));
+            state.selection = [];
+            render(); // 更新界面
+
+            // 6. 胜利判定
+            // 如果 fail() 导致游戏结束，state.active 会变成 false
+            // 所以只有在游戏依然 active 且手牌为空时，才算赢
+            if(state.active && state.hand.length === 0) {
+                setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+            } else if (state.active && state.hand.length > 0) {
+                // 如果游戏还在继续，恢复 READY 状态
+                setTimeout(() => {
+                    setStatus("READY", "var(--secondary-color)");
+                }, 800);
             }
         }
 
@@ -645,18 +671,80 @@
             $('review-ui').style.display = 'flex';
             let list = $('review-list');
             list.innerHTML = '';
+            
             state.history.forEach((h, i) => {
                 let d = document.createElement('div');
                 d.className = 'log-entry';
+                // 如果是失败的记录，可以在列表里也标红 (可选)
+                if(h.status === 'fail') d.style.color = 'var(--alert-color)';
+                
                 d.innerText = `[${i+1}]  ${h.cards.join(' ')}`;
+                
                 d.onclick = () => {
+                    // 1. 显示选中的牌
                     $('review-display').innerHTML = h.cards.map(v => 
                         `<div class="card selected" style="cursor:default">${v}</div>`
                     ).join('');
+                    
+                    // 2. 显示解法或无解提示
+                    const solDisplay = $('review-sol');
+                    
+                    if (h.sol) {
+                        // 有解
+                        solDisplay.innerText = h.sol;
+                        solDisplay.style.color = "var(--primary-color)";
+                    } else {
+                        // 无解 (因为我们只存了有解的进DB，查不到就是null)
+                        solDisplay.innerText = "NO SOLUTION / INVALID COMBINATION";
+                        solDisplay.style.color = "var(--alert-color)";
+                    }
                 };
                 list.appendChild(d);
             });
         }
+        // --- 读取并解析 database.txt (优化版) ---
+        async function loadData() {
+            try {
+                setStatus("LOADING DATA...", "var(--primary-color)");
+                
+                const response = await fetch('database.txt');
+                if (!response.ok) throw new Error("File not found");
+                
+                const text = await response.text();
+                const lines = text.split('\n');
+
+                solutionDB.clear(); // 清空旧数据
+
+                lines.forEach(line => {
+                    line = line.trim();
+                    // --- 修改点：如果没有等号，直接跳过 (不存入Map) ---
+                    if (!line || !line.includes('=')) return; 
+
+                    // 解析步骤：
+                    // 1. 替换非数字字符为空格，提取所有数字
+                    // 2. 既然包含 '=', 最后一个数字肯定是结果(24)，弹出不要
+                    let nums = line.replace(/[^\d]/g, ' ').trim().split(/\s+/).map(Number);
+                    nums.pop(); 
+
+                    // 3. 排序并生成 Key
+                    nums.sort((a, b) => a - b);
+                    const key = nums.join(',');
+
+                    // 4. 存入 Map (此时 Map 里全是能赢的解法)
+                    solutionDB.set(key, line);
+                });
+
+                isDbReady = true;
+                setStatus("SYSTEM READY", "var(--secondary-color)");
+                console.log(`Database loaded: ${solutionDB.size} solvable entries.`);
+
+            } catch (err) {
+                console.error(err);
+                setStatus("DB LOAD FAIL", "var(--alert-color)");
+                alert("无法读取数据库！");
+            }
+        }
+        loadData();
 
     </script>
 </body>
