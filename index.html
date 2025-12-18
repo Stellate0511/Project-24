@@ -486,6 +486,26 @@
             $('review-ui').style.display = 'none';
             $('game-ui').style.display = 'flex';
 
+            // --- 修复：重置进度条视觉状态 ---
+            const timerBar = $('timer-bar');
+            const progressArea = document.querySelector('.progress-area');
+            
+            // 1. 先把颜色改回默认青色 (防止呼吸模式留下的红色)
+            timerBar.style.backgroundColor = 'var(--primary-color)';
+            
+            // 2. 根据模式处理进度条
+            if (cfg.time === 'endless') {
+                // 无尽模式：进度条归零，且隐藏轨道（使用 visibility 保持布局高度，避免跳动）
+                timerBar.style.width = '0%';
+                progressArea.style.visibility = 'hidden';
+            } else {
+                // 其他模式：显示轨道
+                progressArea.style.visibility = 'visible';
+                // 初始设为 100% (满条开始)
+                timerBar.style.width = '100%'; 
+            }
+            // --------------------------------
+            
             state.history = [];
             state.hand = [];
             state.selection = [];
