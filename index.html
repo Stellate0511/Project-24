@@ -355,6 +355,14 @@
                     <button data-val="extreme">极限 (0)</button>
                 </div>
             </div>
+            <div class="config-group">
+                <span class="config-title">LENGTH (赛程)</span>
+                <div class="btn-group" id="opt-rounds">
+                    <button class="active" data-val="1">基础 (1)</button>
+                    <button data-val="10">速通 (10)</button>
+                    <button data-val="24">耐久 (24)</button>
+                </div>
+            </div>
             <button id="start-btn">INITIATE</button>
         </div>
 
@@ -362,6 +370,10 @@
         <div id="game-ui">
             <div class="top-bar">
                 <div class="stat-group">
+                    <div class="stat-item" id="round-display" style="display:none">
+                        <span class="stat-label">RND:</span>
+                        <span class="stat-val" id="round-val">1/1</span>
+                    </div>
                     <div class="stat-item">
                         <span class="stat-label">DECK:</span>
                         <span class="stat-val" id="deck-val">--</span>
@@ -434,11 +446,16 @@
     </div>
 
     <script>
-        const cfg = { deck:'standard', time:'endless', life:'challenge' };
+        // 修改 cfg，增加 rounds 默认值
+        const cfg = { deck:'standard', time:'endless', life:'challenge', rounds: 1 };
+        
+        // 修改 state，增加 round 计数器
         const state = {
             deck: [], hand: [], selection: [], history: [],
             chances: 0, timer: 0, interval: null, breath: 10.0,
-            active: false, totalTime: 0
+            active: false, totalTime: 0,
+            // 新增状态
+            currentRound: 1, maxRounds: 1 
         };
 
         const solutionDB = new Map();
@@ -454,6 +471,7 @@
                 if(p.id==='opt-deck') cfg.deck = e.target.dataset.val;
                 if(p.id==='opt-time') cfg.time = e.target.dataset.val;
                 if(p.id==='opt-life') cfg.life = e.target.dataset.val;
+                if(p.id==='opt-rounds') cfg.rounds = parseInt(e.target.dataset.val);
             }
         });
 
@@ -486,78 +504,92 @@
             $('review-ui').style.display = 'none';
             $('game-ui').style.display = 'flex';
 
-            // --- 修复：重置进度条视觉状态 ---
+            // 重置全局游戏状态
+            state.active = true;
+            state.totalTime = 0; 
+            state.history = [];
+            
+            // 设置赛程
+            state.maxRounds = cfg.rounds;
+            state.currentRound = 1;
+
+            // --- 新增：控制 RND 指示器显隐 ---
+            if (state.maxRounds > 1) {
+                $('round-display').style.display = 'flex'; // 多局模式：显示
+            } else {
+                $('round-display').style.display = 'none'; // 基础模式：隐藏
+            }
+            // --------------------------------
+
+            // 启动时钟
+            clearInterval(state.interval);
+            state.interval = setInterval(tick, 100);
+
+            // 进入第一轮
+            startRound();
+        }
+
+        // 新增函数：专门处理单轮重置逻辑
+        function startRound() {
+            // 1. 清理
+            state.hand = [];
+            state.selection = [];
+            $('card-container').innerHTML = '';
+
+            // 2. 更新上方局数显示 (如果有)
+            if (state.maxRounds > 1) {
+                $('round-val').innerText = `${state.currentRound}/${state.maxRounds}`;
+            }
+
+            // 3. 进度条视觉重置
             const timerBar = $('timer-bar');
             const progressArea = document.querySelector('.progress-area');
-            
-            // 1. 先把颜色改回默认青色 (防止呼吸模式留下的红色)
             timerBar.style.backgroundColor = 'var(--primary-color)';
-            
-            // 2. 根据模式处理进度条
             if (cfg.time === 'endless') {
-                // 无尽模式：进度条归零，且隐藏轨道（使用 visibility 保持布局高度，避免跳动）
                 timerBar.style.width = '0%';
                 progressArea.style.visibility = 'hidden';
             } else {
-                // 其他模式：显示轨道
                 progressArea.style.visibility = 'visible';
-                // 初始设为 100% (满条开始)
                 timerBar.style.width = '100%'; 
             }
-            // --------------------------------
-            
-            state.history = [];
-            state.hand = [];
-            state.selection = [];
-            state.active = true;
-            state.totalTime = 0;
 
-            // --- 修改开始：新的牌库生成逻辑 ---
+            // 4. 生成新牌库 (保持原样)
             let pool = [];
-
             if (cfg.deck === 'simple') {
-                // 1 和 2 (4张)，防止很可能出现的无解
-                // 只有 3, 4, 6, 12 这四个最强力的乘法因数由 4 张增加到 8 张
                 const highProb = [3, 4, 6, 12]; 
-                
                 for (let i = 1; i <= 13; i++) {
-                    // 如果在高频列表中则放8张，否则(包括1和2)都放4张
                     let count = highProb.includes(i) ? 8 : 4;
                     for (let k = 0; k < count; k++) pool.push(i);
                 }
-                // 简单模式依然不包含 14, 15
-            }
-            else if (cfg.deck === 'classic') {
-                // 经典模式：纯粹扑克，1-13 各 4 张
+            } else if (cfg.deck === 'classic') {
                 for (let i = 1; i <= 13; i++) {
                     for (let k = 0; k < 4; k++) pool.push(i);
                 }
-            } 
-            else {
-                // 标准模式 (fallback)：1-13 各 4 张 + 14, 15 (两张鬼牌)
+            } else { 
                 for (let i = 1; i <= 13; i++) {
                     for (let k = 0; k < 4; k++) pool.push(i);
                 }
                 pool.push(14, 15);
             }
-
             state.deck = pool;
             shuffleArray(state.deck);
-            // --- 修改结束 ---
+            
+            $('deck-val').innerText = state.deck.length; 
 
+            // 5. 重置机会
             if(cfg.life === 'casual') state.chances = 3;
             else if(cfg.life === 'challenge') state.chances = 1;
             else state.chances = 0;
             updateStats();
 
-            clearInterval(state.interval);
+            // 6. 重置单局计时
             if(cfg.time === 'hourglass') state.timer = 60.0;
             else if(cfg.time === 'breathing') state.breath = 10.0;
-            else state.timer = 0;
+            else state.timer = 0; 
 
-            state.interval = setInterval(tick, 100);
-
+            // 7. 发牌
             drawCards(10);
+            
             setStatus("SYSTEM READY", "var(--secondary-color)");
         }
 
@@ -851,8 +883,22 @@
             state.selection = [];
             render(); 
 
+            // 修改后的胜利判定逻辑
             if(state.active && state.hand.length === 0) {
-                setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                // 当前轮次完成
+                if (state.currentRound < state.maxRounds) {
+                    // 还有下一轮
+                    state.currentRound++;
+                    setStatus("NEXT PHASE INITIATED...", "var(--primary-color)");
+                    
+                    // 稍微延迟一下，给玩家反应时间，然后立刻开始下一轮
+                    setTimeout(() => {
+                        startRound();
+                    }, 500); 
+                } else {
+                    // 所有轮次完成，游戏通关
+                    setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                }
             } else if (state.active && state.hand.length > 0) {
                 setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
             }
