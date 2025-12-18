@@ -911,41 +911,38 @@
         function getHint() {
             if (!state.active || !isDbReady) return;
 
-            // 先清理当前选择和之前的提示状态
             clearSelection();
             $('btn-draw').classList.remove('suggest');
 
             const hand = state.hand;
-            const indices = hand.map((_, i) => i); // [0, 1, 2, ...]
+            const indices = hand.map((_, i) => i); 
 
-            // 依次尝试寻找 4张、3张、2张 的解 (优先找牌多的，消除得快)
-            // 如果你想优先找简单的，可以把顺序反过来: [2, 3, 4]
+            // 优先找4张，其次3张，最后2张
             const trySizes = [4, 3, 2]; 
 
             for (let r of trySizes) {
-                const combos = getCombinations(indices, r);
+                // 1. 获取当前张数的所有可能下标组合 (例如所有2张牌的组合)
+                let combos = getCombinations(indices, r);
+                
+                // 如果有多个解，系统会随机挑一个，而不是永远选最左边的
+                shuffleArray(combos); 
                 
                 for (let comboIndices of combos) {
-                    // 获取对应手牌
                     let candidateCards = comboIndices.map(i => hand[i]);
-                    // 提取数值并排序，生成 Key
                     let values = candidateCards.map(c => c.val).sort((a, b) => a - b);
                     let key = values.join(',');
 
-                    // 查询数据库
                     if (solutionDB.has(key)) {
-                        // 找到解了！选中这些牌
                         candidateCards.forEach(c => toggleSelect(c.id));
                         setStatus("SOLUTION FOUND", "var(--success-color)");
-                        return; // 结束函数
+                        return; 
                     }
                 }
             }
 
-            // 如果运行到这里，说明当前手牌无解
+            // 无解逻辑
             if (state.hand.length < 10) {
                 setStatus("NO MOVES - DRAW CARD", "var(--primary-color)");
-                // 高亮 Draw 按钮
                 $('btn-draw').classList.add('suggest');
             } else {
                 setStatus("DEADLOCK", "var(--alert-color)");
@@ -996,7 +993,7 @@
         }
         loadData();
 
-        // --- 键盘事件监听 ---
+        // --- 新增：键盘事件监听 ---
         document.addEventListener('keydown', (e) => {
             // 如果不在游戏活跃状态，或者正在显示遮罩层，不响应按键
             if (!state.active || $('game-over').style.display === 'flex' || $('review-ui').style.display === 'flex') return;
@@ -1064,6 +1061,14 @@
                 setTimeout(() => btn.classList.remove('active'), 150);
             }
         }
+        
+        document.addEventListener('click', (e) => {
+            // 查找被点击元素是否是 button 或在 button 内部
+            const btn = e.target.closest('button');
+            if (btn) {
+                btn.blur(); // 强制移除焦点
+            }
+        }, true);
     </script>
 </body>
 </html>
