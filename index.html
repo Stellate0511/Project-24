@@ -364,8 +364,8 @@
                 <span class="config-title">LENGTH (赛程)</span>
                 <div class="btn-group" id="opt-rounds">
                     <button class="active" data-val="1">基础 (1)</button>
-                    <button data-val="10">速通 (10)</button>
-                    <button data-val="24">耐久 (24)</button>
+                    <button data-val="10">耐久 (10)</button>
+                    <button data-val="-1">无限 (∞)</button>
                 </div>
             </div>
             <button id="start-btn">INITIATE</button>
@@ -559,8 +559,18 @@
             $('card-container').innerHTML = '';
 
             // 2. 更新上方局数显示 (如果有)
-            if (state.maxRounds > 1) {
+            if (cfg.rounds === -1) {
+                // 无限模式：只显示当前局数
+                $('round-val').innerText = state.currentRound;
+                // 确保 RND 栏显示
+                $('round-display').style.display = 'flex';
+            } else if (state.maxRounds > 1) {
+                // 普通多局模式：显示 进度
                 $('round-val').innerText = `${state.currentRound}/${state.maxRounds}`;
+                $('round-display').style.display = 'flex';
+            } else {
+                // 基础模式：隐藏
+                $('round-display').style.display = 'none';
             }
 
             // 3. 进度条视觉重置
@@ -953,18 +963,20 @@
 
             // 修改后的胜利判定逻辑
             if(state.active && state.hand.length === 0) {
-                // 当前轮次完成
-                if (state.currentRound < state.maxRounds) {
-                    // 还有下一轮
-                    state.currentRound++;
-                    setStatus("NEXT PHASE INITIATED...", "var(--primary-color)");
+                // 如果是无限模式 (-1) 或者 还有下一轮
+                if (cfg.rounds === -1 || state.currentRound < state.maxRounds) {
                     
-                    // 稍微延迟一下，给玩家反应时间，然后立刻开始下一轮
+                    state.currentRound++;
+                    
+                    // 稍微不同的提示语
+                    let msg = cfg.rounds === -1 ? "WAVE CLEARED" : "NEXT PHASE";
+                    setStatus(msg + "...", "var(--primary-color)");
+                    
                     setTimeout(() => {
                         startRound();
                     }, 500); 
                 } else {
-                    // 所有轮次完成，游戏通关
+                    // 有限局数且全部打完 -> 通关
                     setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
                 }
             } else if (state.active && state.hand.length > 0) {
@@ -997,8 +1009,17 @@
             const title = $('end-title');
             const msgEl = $('end-msg');
             const recordEl = $('end-record');
+            const timeEl = $('end-time');
             
-            // 1. 设置标题样式
+            // 计算无限模式下的成绩 (当前轮次 - 1，因为当前轮挂了)
+            // 如果是奇迹结局，当前轮次算赢
+            let survivalScore = 0;
+            if (cfg.rounds === -1) {
+                survivalScore = isMiracle ? state.currentRound : (state.currentRound - 1);
+                survivalScore = Math.max(0, survivalScore);
+            }
+
+            // --- 1. 标题与样式处理 ---
             if (isMiracle) {
                 title.innerText = "LEGENDARY"; 
                 title.style.color = "#FFD700"; 
@@ -1006,49 +1027,82 @@
                 msgEl.innerHTML = `<span style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">IMPOSSIBLE HAND DISCOVERED</span><span style="color:#fff; font-size:1.2rem; font-family:monospace">[ ${msg} ]</span>`;
             } 
             else {
-                title.innerText = win ? "SUCCESS" : "FAILURE";
-                title.className = win ? "title-success" : "title-failure";
+                // 恢复默认样式
                 title.style.color = ""; 
                 title.style.textShadow = "";
                 msgEl.innerText = msg;
+
+                if (cfg.rounds === -1) {
+                    // === 无限模式逻辑修正 ===
+                    if (survivalScore > 0) {
+                        // 只要完成过至少一局，就是绿色“结束”
+                        title.innerText = "RUN ENDED";
+                        title.className = "title-success";
+                    } else {
+                        // 一局都没过，红色“失败”
+                        title.innerText = "FAILURE";
+                        title.className = "title-failure";
+                    }
+                } else {
+                    // 普通模式保持原样
+                    title.innerText = win ? "SUCCESS" : "FAILURE";
+                    title.className = win ? "title-success" : "title-failure";
+                }
             }
 
-            // 2. 耗时显示
-            let timeText = "TOTAL TIME: " + fmtTimePrecise(state.totalTime);
-            $('end-time').innerText = timeText;
+            // --- 2. 统计数据显示 ---
+            if (cfg.rounds === -1) {
+                timeEl.innerText = `ROUNDS CLEARED: ${survivalScore}`;
+                timeEl.style.color = "var(--primary-color)";
+            } else {
+                timeEl.innerText = "TOTAL TIME: " + fmtTimePrecise(state.totalTime);
+            }
 
-            // 3. 记录判定逻辑
+            // --- 3. 记录判定逻辑 ---
             const key = getRecordKey();
-            const bestTimeStr = localStorage.getItem(key);
-            let bestTime = bestTimeStr ? parseFloat(bestTimeStr) : null;
+            const lastRecord = localStorage.getItem(key);
+            let bestVal = lastRecord ? parseFloat(lastRecord) : null;
 
             if (state.hintUsed) {
                 recordEl.innerText = "RECORD INVALID (ASSISTED)";
                 recordEl.style.color = "var(--alert-color)";
-            }
-            else if (isMiracle) {
-                // --- 修正：奇迹结局不计入记录 ---
-                recordEl.innerText = "RECORD UNAFFECTED";
-                recordEl.style.color = "#FFD700"; // 金色提示
                 recordEl.style.animation = "none";
             }
+            else if (isMiracle) {
+                 recordEl.innerText = "RECORD UNAFFECTED (LUCK)";
+                 recordEl.style.color = "#FFD700";
+                 recordEl.style.animation = "none";
+            }
+            // === 分支 A: 无限模式 (比大小) ===
+            else if (cfg.rounds === -1) {
+                // 只要有成绩，哪怕是0局，也进行记录判定
+                if (bestVal === null || survivalScore > bestVal) {
+                    localStorage.setItem(key, survivalScore);
+                    recordEl.innerText = `NEW RECORD: ${survivalScore} RNDS`;
+                    recordEl.style.color = "var(--success-color)";
+                    recordEl.style.animation = "pulse 1s infinite";
+                } else {
+                    recordEl.innerText = `BEST SURVIVAL: ${bestVal} RNDS`;
+                    recordEl.style.color = "#888";
+                    recordEl.style.animation = "none";
+                }
+            }
+            // === 分支 B: 普通竞速模式 (比快慢) ===
             else if (win) {
-                // 只有普通胜利且未用提示，才算记录
-                if (bestTime === null || state.totalTime < bestTime) {
+                if (bestVal === null || state.totalTime < bestVal) {
                     localStorage.setItem(key, state.totalTime);
                     recordEl.innerText = "NEW RECORD UPDATED";
                     recordEl.style.color = "var(--success-color)";
                     recordEl.style.animation = "pulse 1s infinite"; 
                 } else {
-                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestTime)}`;
+                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestVal)}`;
                     recordEl.style.color = "#888";
                     recordEl.style.animation = "none";
                 }
             } 
             else {
-                // 失败
-                if (bestTime !== null) {
-                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestTime)}`;
+                if (bestVal !== null) {
+                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestVal)}`;
                 } else {
                     recordEl.innerText = "NO RECORD";
                 }
