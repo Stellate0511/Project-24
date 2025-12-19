@@ -346,25 +346,23 @@
             padding-top: 20px; 
         }
 
-        /* 2. 新增：迷你视图模式 (当卡牌拥挤时启用) */
+        /* 2. 迷你视图模式 (中等大小) */
         #review-display.mini-view {
-            gap: 8px; /* 间距也缩小 */
-            margin-bottom: 15px;
+            gap: 10px; /* 间距适中 */
+            margin-bottom: 20px;
         }
 
-        /* 强制覆盖卡牌尺寸和字号 */
         #review-display.mini-view .card {
-            width: 36px;   /* 原宽 65px -> 约 55% */
-            height: 52px;  /* 原高 95px -> 约 55% */
-            font-size: 1rem; /* 字体缩小 */
+            width: 50px;     /* 适中宽度 */
+            height: 75px;    /* 适中高度 */
+            font-size: 1.4rem; /* 数字依然清晰可见 */
             border-width: 1px;
         }
         
-        /* 调整迷你模式下的选中上浮距离，防止飘太高 */
+        /* 上浮高度也调整到中间值 */
         #review-display.mini-view .card.selected {
-            transform: translateY(-6px) !important; 
+            transform: translateY(-8px) !important; 
         }
-
     </style>
 </head>
     
