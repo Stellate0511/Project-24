@@ -332,14 +332,37 @@
             margin-bottom: 30px; 
             flex-wrap: wrap; 
             justify-content: center; 
-            
-            /* 新增属性 */
-            width: 100%;          /* 占满宽度 */
-            max-height: 70vh;     
-            max-height: 70dvh;     /* 限制高度不超过屏幕高度的 60%，留出空间给按钮 */
-            overflow-y: auto;     /* 内容超出时显示垂直滚动条 */
-            padding: 30px 10px 10px 10px;
-            align-content: flex-start; /* 防止内容少时分散对齐，强制靠上 */
+        }
+
+        /* 1. 容器样式：改回默认，去掉滚动条和高度限制 */
+        #review-display { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            width: 100%;
+            /* 稍微留一点 padding 防止默认状态下顶部发光被切 */
+            padding-top: 20px; 
+        }
+
+        /* 2. 新增：迷你视图模式 (当卡牌拥挤时启用) */
+        #review-display.mini-view {
+            gap: 8px; /* 间距也缩小 */
+            margin-bottom: 15px;
+        }
+
+        /* 强制覆盖卡牌尺寸和字号 */
+        #review-display.mini-view .card {
+            width: 36px;   /* 原宽 65px -> 约 55% */
+            height: 52px;  /* 原高 95px -> 约 55% */
+            font-size: 1rem; /* 字体缩小 */
+            border-width: 1px;
+        }
+        
+        /* 调整迷你模式下的选中上浮距离，防止飘太高 */
+        #review-display.mini-view .card.selected {
+            transform: translateY(-6px) !important; 
         }
 
     </style>
@@ -1231,6 +1254,12 @@
                 d.onclick = function() {
                     Array.from(list.children).forEach(child => child.classList.remove('active'));
                     d.classList.add('active');
+
+                    if (h.cards.length > 6) {
+                        cardDisplay.classList.add('mini-view');
+                    } else {
+                        cardDisplay.classList.remove('mini-view');
+                    }
                     
                     cardDisplay.innerHTML = h.cards.map(v => 
                         `<div class="card selected" style="cursor:default">${v}</div>`
