@@ -832,10 +832,6 @@
             $('deck-val').innerText = state.deck.length;
             updateDrawBtn();
             updateButtonStates();
-
-            $('deck-val').innerText = state.deck.length;
-            updateDrawBtn(); 
-            updateButtonStates();
         }
 
         function updateDrawBtn() {
@@ -933,7 +929,7 @@
         
         // --- Logic ---
         function execCards() {
-            if(state.selection.length < 2) return;
+            if(state.selection.length < 2 || state.selection.length > 4) return;
             if(!isDbReady) { setStatus("DB NOT READY", "var(--alert-color)"); return; }
 
             let selectedCards = state.hand.filter(c => state.selection.includes(c.id));
