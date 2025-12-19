@@ -950,38 +950,53 @@
             const resultLine = solutionDB.get(key);
             
             if(resultLine) {
+                // === 成功逻辑 ===
                 setStatus("CALCULATION VALID", "var(--success-color)");
+                
+                // 呼吸模式奖励：重置时间
                 if(cfg.time === 'breathing') state.breath = 10.0;
+                
+                // 记录成功历史
                 state.history.push({ cards: selectedCards.map(c=>c.val), sol: resultLine, status: 'success' });
-            } else {
-                fail("INVALID / NO SOLUTION"); 
-                state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
-            }
 
-            state.hand = state.hand.filter(c => !state.selection.includes(c.id));
-            state.selection = [];
-            render(); 
+                // 核心变化：只有成功时才移除手牌
+                state.hand = state.hand.filter(c => !state.selection.includes(c.id));
+                state.selection = [];
+                render(); 
 
-            // 修改后的胜利判定逻辑
-            if(state.active && state.hand.length === 0) {
-                // 如果是无限模式 (-1) 或者 还有下一轮
-                if (cfg.rounds === -1 || state.currentRound < state.maxRounds) {
-                    
-                    state.currentRound++;
-                    
-                    // 稍微不同的提示语
-                    let msg = cfg.rounds === -1 ? "WAVE CLEARED" : "NEXT PHASE";
-                    setStatus(msg + "...", "var(--primary-color)");
-                    
-                    setTimeout(() => {
-                        startRound();
-                    }, 500); 
-                } else {
-                    // 有限局数且全部打完 -> 通关
-                    setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                // 检查是否下一轮或通关
+                if(state.active && state.hand.length === 0) {
+                    if (cfg.rounds === -1 || state.currentRound < state.maxRounds) {
+                        state.currentRound++;
+                        let msg = cfg.rounds === -1 ? "WAVE CLEARED" : "NEXT PHASE";
+                        setStatus(msg + "...", "var(--primary-color)");
+                        setTimeout(() => {
+                            startRound();
+                        }, 500); 
+                    } else {
+                        setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                    }
+                } else if (state.active && state.hand.length > 0) {
+                    setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
                 }
-            } else if (state.active && state.hand.length > 0) {
-                setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+
+            } else {
+                // === 失败逻辑 ===
+                fail("INVALID / NO SOLUTION"); // 1. 先扣血 (fail函数内部会判断是否死亡)
+
+                // 2. 如果扣血后还没死 (state.active 依然为 true)
+                if (state.active) {
+                    // 呼吸模式重置时间（再给一次思考机会）
+                    if(cfg.time === 'breathing') state.breath = 10.0;
+                    
+                    // 取消选中状态，让玩家重选
+                    clearSelection();
+                    
+                    // 注意：这里没有移除手牌，也没有 render，玩家可以立刻尝试别的组合
+                } else {
+                    // 如果死掉了，记录这最后一次失败的历史以便复盘
+                    state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
+                }
             }
         }
 
