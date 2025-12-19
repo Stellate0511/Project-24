@@ -1119,22 +1119,11 @@
             } else {
                 // 1. 先记录这手牌失败了
                 state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
-
-                // 2. 预测死亡：如果当前机会不足以承受这次失败
-                // (注意：fail函数内部是先减chances再判断 <0，所以这里用 <= 0 判断是否是最后一击)
-                if (state.chances <= 0) {
-                    // 既然这手牌导致了死亡，它们应该被视为“打出去了”，不应出现在剩余手牌中
-                    state.hand = state.hand.filter(c => !state.selection.includes(c.id));
-                    // 视觉上清空选中，防止残留
-                    state.selection = [];
-                    // 这里不调用render，因为马上就gameOver弹窗覆盖了，
-                    // 而且保持界面定格在出牌前一瞬间可能更有戏剧感，或者你也可以加上 render() 让牌消失
-                }
-
-                // 3. 触发失败 (内部会调用 gameOver)
+            
+                // 2. 触发失败 (内部会调用 gameOver)
                 fail("INVALID / NO SOLUTION"); 
 
-                // 4. 如果没死（active还是true），才进行界面重置
+                // 3. 如果没死（active还是true），才进行界面重置
                 if (state.active) {
                     if(cfg.time === 'breathing') state.breath = 10.0;
                     clearSelection();
