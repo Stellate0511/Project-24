@@ -160,8 +160,7 @@
             user-select: none;
         }
 
-        /* 卡牌样式 */
-        .card {
+       .card {
             width: var(--card-w); height: var(--card-h);
             border: 1px solid var(--secondary-color);
             background: rgba(8, 20, 30, 0.6); 
@@ -169,39 +168,57 @@
             display: flex; justify-content: center; align-items: center;
             font-size: 1.8rem; font-weight: bold;
             cursor: pointer; position: relative; 
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            transition: 
+                transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
+                opacity 0.1s ease-out,   /* <--- 改快 */
+                background-color 0.6s ease-out, /* <--- 改慢 */
+                border-color 0.6s ease-out,
+                color 0.6s ease-out, 
+                box-shadow 0.6s ease-out;
+            
             clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-            user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
-            touch-action: none; 
+            user-select: none; -webkit-user-select: none;
+            
+            /* 默认状态 */
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
-        .card:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--primary-color); color: var(--primary-color); }
-        
-        /* 选中状态 */
-        /* 重要：使用 !important 或更高优先级确保 transform 生效，防止被动画残留覆盖 */
+
+        /* 2. 入场前的隐身+高亮状态 (代替原本的 0% 关键帧) */
+        .card.card-hidden {
+            opacity: 0;
+            transform: translateY(-60px) scale(1.1); /* 在高处 */
+            pointer-events: none; /* 隐身时不可点 */
+            
+            /* === 这里找回了丢失的颜色动画 === */
+            /* 强制设置为高亮色，移除类后会自动淡出 */
+            background-color: var(--primary-color) !important;
+            color: #000 !important;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 30px var(--primary-color) !important;
+        }
+
+        /* 3. Hover 样式 (找回来了) */
+        /* 注意：必须写在 .card 之后，.selected 之前 */
+        .card:hover { 
+            background: rgba(0, 243, 255, 0.15); 
+            border-color: var(--primary-color); 
+            color: var(--primary-color); 
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            transform: translateY(-2px); /* 稍微上浮一点点，增加交互感 */
+        }
+
+        /* 4. 选中状态 (优先级最高) */
         .card.selected {
-            transform: translateY(-12px); 
+            transform: translateY(-12px); /* 选中上浮 */
+            
             border-color: #fff; color: #fff;
-            background: rgba(0, 243, 255, 0.25); box-shadow: 0 0 15px var(--primary-color); z-index: 5;
+            background: rgba(0, 243, 255, 0.25); 
+            box-shadow: 0 0 15px var(--primary-color); 
+            z-index: 5;
         }
-
-        /* 入场动画 */
-        .card.anim-enter {
-            animation: card-entry 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            opacity: 0; 
-        }
-        @keyframes card-entry {
-            0% {
-                opacity: 0;
-                transform: translateY(-60px) scale(1.1);
-                background-color: var(--primary-color);
-                color: #000;
-                box-shadow: 0 0 30px var(--primary-color);
-                border-color: var(--primary-color);
-            }
-            50% { opacity: 1; background-color: rgba(0, 243, 255, 0.3); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
+        
         /* --- 终极修正：按键提示样式 --- */
         .key-hint {
             position: absolute;
@@ -499,7 +516,8 @@
             currentRound: 1, maxRounds: 1,
             hintUsed: false,
             lastTick: 0,
-            lastRender: 0
+            lastRender: 0,
+            animTimers: []
         };
 
         const solutionDB = new Map();
@@ -591,6 +609,7 @@
         // 新增函数：专门处理单轮重置逻辑
         function startRound() {
             // 1. 清理
+            clearAnimTimers();
             state.hand = [];
             state.selection = [];
             $('card-container').innerHTML = '';
@@ -715,6 +734,10 @@
 
         function drawCards(n) {
             if(state.hand.length >= 10) return;
+            
+            // 防止玩家疯狂点 Q 导致上一次的动画队列还在跑
+            clearAnimTimers();
+
             $('btn-draw').classList.remove('suggest');
             setStatus("READY", "var(--secondary-color)");
 
@@ -730,13 +753,6 @@
             
             // 立即移除数据标记
             state.hand.forEach(c => c.isNew = false);
-            
-            // --- 修复浮动问题：延迟移除 DOM 上的动画类 ---
-            setTimeout(() => {
-                document.querySelectorAll('.card.anim-enter').forEach(el => {
-                    el.classList.remove('anim-enter');
-                });
-            }, 700); // 略长于动画时间(0.6s)
 
             // === 状态检查 ===
             if (isDbReady) {
@@ -828,23 +844,53 @@
             }
         }
 
+        // 清理所有正在排队的入场动画
+        function clearAnimTimers() {
+            state.animTimers.forEach(id => clearTimeout(id));
+            state.animTimers = [];
+        }
+
+        // 强行触发布局重绘 (Reflow)
+        // 这是让浏览器意识到“元素刚刚是隐藏的，现在要显示了”的关键，否则浏览器会合并操作导致没有动画
+        function forceReflow() {
+            return document.body.offsetHeight; 
+        }
+
         function updateCardVisual(id) {
             const cardDiv = document.querySelector(`.card[data-id="${id}"]`);
             if (!cardDiv) return;
             const isSelected = state.selection.includes(id);
-            if (isSelected) cardDiv.classList.add('selected');
-            else cardDiv.classList.remove('selected');
+            
+            if (isSelected) {
+                // 如果还在入场隐身状态，移除它，让它现身
+                cardDiv.classList.remove('card-hidden'); 
+                cardDiv.classList.add('selected');
+            } else {
+                cardDiv.classList.remove('selected');
+            }
         }
 
         function setCardSelection(id, shouldSelect) {
             const idx = state.selection.indexOf(id);
             if (shouldSelect) {
-                if (idx === -1 && state.selection.length < 4) {
+                if (idx === -1) {
+                    // === 修改重点：FIFO 自动顶替逻辑 ===
+                    // 如果已经选满了4张，用户又点了第5张
+                    if (state.selection.length >= 4) {
+                        // 1. 移除最早选入的那张 (数组头部)
+                        const firstId = state.selection.shift(); 
+                        // 2. 更新那张牌的视觉状态 (取消选中)
+                        updateCardVisual(firstId); 
+                    }
+                    // =================================
+                    
+                    // 正常的选中逻辑
                     state.selection.push(id);
                     updateCardVisual(id);
                     updateButtonStates();
                 }
             } else {
+                // 取消选中逻辑 (保持不变)
                 if (idx > -1) {
                     state.selection.splice(idx, 1);
                     updateCardVisual(id);
@@ -859,34 +905,53 @@
         }
 
         function render() {
+            // 1. 先清理上一次渲染可能残留的定时器，防止快速操作冲突
+            // 注意：这里只清理 render 内部产生的 stagger 定时器，
+            // 实际上我们在 drawCards 开头也会清理，双重保险
+            
             const container = $('card-container');
             container.innerHTML = '';
-            let newCardIndex = 0; 
-
+            
             state.hand.forEach((c, index) => {
                 let div = document.createElement('div');
                 
-                // --- 修改开始：计算快捷键并插入 HTML ---
-                // 索引0对应按键1，索引9对应按键0
+                // 设置内容
                 let keyLabel = (index + 1) % 10; 
                 if (keyLabel === 0) keyLabel = 0; 
-                
-                // 将提示 span 和数值一起放入 innerHTML
                 div.innerHTML = `<span class="key-hint">${keyLabel}</span>${c.val}`;
-                // --- 修改结束 ---
-
+                
                 div.dataset.id = c.id; 
                 div.onclick = () => toggleSelect(c.id);
                 
                 let cls = 'card';
+                // 如果被选中，直接加 selected 类
                 if (state.selection.includes(c.id)) cls += ' selected';
+                
+                // 如果是新牌，先加上“隐身”类
                 if (c.isNew) {
-                    cls += ' anim-enter';
-                    div.style.animationDelay = `${newCardIndex * 0.05}s`;
-                    newCardIndex++;
+                    cls += ' card-hidden';
                 }
+                
                 div.className = cls;
                 container.appendChild(div);
+                
+                // === 动画触发逻辑 ===
+                if (c.isNew) {
+                    // 只有新牌需要处理入场
+                    // 我们利用 stagger (交错) 时间来逐个移除 card-hidden
+                    
+                    // 计算延迟：第一张立即开始，后面每张间隔 50ms
+                    // 这里的 index 是手牌绝对索引，为了视觉效果更好，应该基于“新牌的数量”来计算，
+                    // 但简单起见，直接用 index * 40 也可以，或者维护一个 newCardCounter
+                    let delay = index * 40; 
+                    
+                    let timerId = setTimeout(() => {
+                        // 移除隐身类 -> 触发 CSS transition -> 平滑飞入
+                        div.classList.remove('card-hidden');
+                    }, delay);
+                    
+                    state.animTimers.push(timerId);
+                }
             });
             
             $('deck-val').innerText = state.deck.length;
