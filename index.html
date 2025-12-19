@@ -471,6 +471,35 @@
         .profile-info { display: flex; flex-direction: column; gap: 2px; }
         .profile-name { color: var(--text-color); font-size: 0.9rem; font-weight: bold; text-shadow: var(--text-glow) rgba(0, 243, 255, 0.5); font-family: var(--font-main); }
         .profile-role { color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px; font-weight: bold; }
+
+        /* 修复：亮色模式下头像的阴影 */
+        html[data-theme="light"] #profile-link img {
+            /* 1. 边框跟随主题色 (粉色) */
+            border-color: var(--primary-color);
+            
+            /* 2. 阴影改为柔和的粉色投影，去掉青色发光 */
+            box-shadow: 0 4px 10px rgba(255, 143, 171, 0.4);
+        }
+
+        /* 修复：亮色模式下名字去掉霓虹发光 */
+        html[data-theme="light"] .profile-name {
+            color: var(--text-color); /* 深灰色 */
+            text-shadow: none;        /* 关掉发光 */
+            font-weight: 800;         /*稍微加粗一点弥补去发光后的视觉重量 */
+        }
+
+        /* 修复：亮色模式下角色名 (LINK START) */
+        html[data-theme="light"] .profile-role {
+            color: #999; /* 浅灰色 */
+        }
+
+        /* 修复：亮色模式下头像 Hover 的效果 */
+        html[data-theme="light"] #profile-link:hover img {
+            /* 稍微加深阴影 */
+            box-shadow: 0 6px 15px rgba(255, 143, 171, 0.6);
+            transform: scale(1.05) rotate(5deg);
+        }
+        
         /* 移动端适配：屏幕变窄时 */
         @media (max-width: 600px) {
             /* 1. 不再隐藏整个连接，而是让它保持显示 */
