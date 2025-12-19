@@ -1011,15 +1011,15 @@
             const recordEl = $('end-record');
             const timeEl = $('end-time');
             
-            // 计算无限模式下的成绩 (当前轮次 - 1，因为当前轮挂了)
-            // 如果是奇迹结局，当前轮次算赢
+            // --- 0. 计算分数 (无限模式) ---
+            // 核心修正：无论是不是奇迹，无限模式下，当前这局都没过（或者不算过）
+            // 所以分数永远是 currentRound - 1
             let survivalScore = 0;
             if (cfg.rounds === -1) {
-                survivalScore = isMiracle ? state.currentRound : (state.currentRound - 1);
-                survivalScore = Math.max(0, survivalScore);
+                survivalScore = Math.max(0, state.currentRound - 1);
             }
 
-            // --- 1. 标题与样式处理 ---
+            // --- 1. 标题与样式处理 (UI层) ---
             if (isMiracle) {
                 title.innerText = "LEGENDARY"; 
                 title.style.color = "#FFD700"; 
@@ -1033,24 +1033,20 @@
                 msgEl.innerText = msg;
 
                 if (cfg.rounds === -1) {
-                    // === 无限模式逻辑修正 ===
                     if (survivalScore > 0) {
-                        // 只要完成过至少一局，就是绿色“结束”
                         title.innerText = "RUN ENDED";
                         title.className = "title-success";
                     } else {
-                        // 一局都没过，红色“失败”
                         title.innerText = "FAILURE";
                         title.className = "title-failure";
                     }
                 } else {
-                    // 普通模式保持原样
                     title.innerText = win ? "SUCCESS" : "FAILURE";
                     title.className = win ? "title-success" : "title-failure";
                 }
             }
 
-            // --- 2. 统计数据显示 ---
+            // --- 2. 中间大字数据显示 ---
             if (cfg.rounds === -1) {
                 timeEl.innerText = `ROUNDS CLEARED: ${survivalScore}`;
                 timeEl.style.color = "var(--primary-color)";
@@ -1058,7 +1054,7 @@
                 timeEl.innerText = "TOTAL TIME: " + fmtTimePrecise(state.totalTime);
             }
 
-            // --- 3. 记录判定逻辑 ---
+            // --- 3. 记录判定逻辑 (核心修正) ---
             const key = getRecordKey();
             const lastRecord = localStorage.getItem(key);
             let bestVal = lastRecord ? parseFloat(lastRecord) : null;
@@ -1068,26 +1064,30 @@
                 recordEl.style.color = "var(--alert-color)";
                 recordEl.style.animation = "none";
             }
+            // === 情况 A: 无限模式 ===
+            else if (cfg.rounds === -1) {
+                // 在无限模式下，即使是 Miracle 结局，也要结算之前的成绩
+                // 此时 Miracle 只是终止了游戏，不影响之前成绩的有效性
+                
+                if (bestVal === null || survivalScore > bestVal) {
+                    localStorage.setItem(key, survivalScore);
+                    recordEl.innerText = `NEW RECORD UPDATED`;
+                    recordEl.style.color = "var(--success-color)";
+                    recordEl.style.animation = "pulse 1s infinite";
+                } else {
+                    recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
+                    recordEl.style.color = "#888"; 
+                    recordEl.style.animation = "none";
+                }
+            }
+            // === 情况 B: 普通竞速模式下的 Miracle ===
             else if (isMiracle) {
+                 // 竞速模式下，Miracle 不计入时间成绩
                  recordEl.innerText = "RECORD UNAFFECTED";
                  recordEl.style.color = "#FFD700";
                  recordEl.style.animation = "none";
             }
-            // === 分支 A: 无限模式 (比大小) ===
-            else if (cfg.rounds === -1) {
-                // 只要有成绩，哪怕是0局，也进行记录判定
-                if (bestVal === null || survivalScore > bestVal) {
-                    localStorage.setItem(key, survivalScore);
-                    recordEl.innerText = `NEW RECORD: ${survivalScore} RNDS`;
-                    recordEl.style.color = "var(--success-color)";
-                    recordEl.style.animation = "pulse 1s infinite";
-                } else {
-                    recordEl.innerText = `BEST SURVIVAL: ${bestVal} RNDS`;
-                    recordEl.style.color = "#888";
-                    recordEl.style.animation = "none";
-                }
-            }
-            // === 分支 B: 普通竞速模式 (比快慢) ===
+            // === 情况 C: 普通竞速模式下的正常胜利 ===
             else if (win) {
                 if (bestVal === null || state.totalTime < bestVal) {
                     localStorage.setItem(key, state.totalTime);
@@ -1101,6 +1101,7 @@
                 }
             } 
             else {
+                // 普通失败
                 if (bestVal !== null) {
                     recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestVal)}`;
                 } else {
