@@ -25,7 +25,8 @@
             background-image: radial-gradient(circle at center, #0a1525 0%, #000 100%);
             color: var(--text-color);
             font-family: 'Courier New', Courier, monospace;
-            height: 100vh;
+            min-height: 100vh;      /* fallback */
+            min-height: 100dvh;     /* 关键：动态视口 */
             width: 100vw;
             display: flex;
             justify-content: center;
@@ -41,6 +42,7 @@
             width: 95%;
             max-width: 800px;
             height: 90vh; 
+            height: 90dvh;
             max-height: 750px;
             min-height: 500px; 
             background: var(--win-bg);
@@ -255,6 +257,7 @@
             background: rgba(0,0,0,0.2);
             flex-shrink: 0;
             flex-wrap: wrap;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
         }
         #msg-display {
             margin-right: auto; color: var(--secondary-color); font-size: 0.8rem; letter-spacing: 2px;
@@ -295,7 +298,9 @@
         #btn-clear:hover { background: var(--alert-color); color: #000; }
 
         .footer-bar {
-            height: 40px; flex-shrink: 0;
+            height: calc(40px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            flex-shrink: 0;
             display: flex; justify-content: center; align-items: center;
             border-top: 1px solid rgba(0, 243, 255, 0.05); background: rgba(0, 0, 0, 0.4);
             color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px;
