@@ -498,7 +498,8 @@
             // 新增状态
             currentRound: 1, maxRounds: 1,
             hintUsed: false,
-            lastTick: 0
+            lastTick: 0,
+            lastRender: 0
         };
 
         const solutionDB = new Map();
@@ -663,45 +664,50 @@
 
         function tick() {
             if(!state.active) {
-                state.lastTick = Date.now(); // 暂停时同步时间，防止跳跃
+                state.lastTick = Date.now();
                 return;
             }
 
-            // --- 高精度计算 ---
+            // --- 1. 高频逻辑计算 (保持 16ms 一次，保证时间精准) ---
             let now = Date.now();
-            let dt = (now - state.lastTick) / 1000; // 计算逝去的秒数 (小数)
+            let dt = (now - state.lastTick) / 1000;
             state.lastTick = now;
-            // -----------------
-
-            // 累加总耗时 (内部变量已经是高精度了)
             state.totalTime += dt;
 
+            // 计算时间数值
             if(cfg.time === 'endless') {
                 state.timer += dt;
-                // 顶部栏：依然使用普通 fmtTime，保持整洁
-                $('time-val').innerText = fmtTime(state.timer);
-            }
-            else if(cfg.time === 'hourglass') {
+            } else if(cfg.time === 'hourglass') {
                 state.timer -= dt;
-                let displayTime = Math.max(0, state.timer);
-                $('time-val').innerText = displayTime.toFixed(1);
-                
-                let pct = (state.timer / 60) * 100;
-                $('timer-bar').style.width = pct + "%";
-                if(state.timer <= 0) gameOver("TIME EXHAUSTED", false);
-            }
-            else if(cfg.time === 'breathing') {
+                if(state.timer <= 0) { gameOver("TIME EXHAUSTED", false); return; }
+            } else if(cfg.time === 'breathing') {
                 state.breath -= dt;
-                let pct = (state.breath / 10.0) * 100;
-                $('timer-bar').style.width = pct + "%";
-                $('time-val').innerText = state.breath.toFixed(1);
-                
-                if(state.breath <= 3) $('timer-bar').style.backgroundColor = 'var(--alert-color)';
-                else $('timer-bar').style.backgroundColor = 'var(--primary-color)';
-                
                 if(state.breath <= 0) {
                     fail("TIMEOUT");
                     state.breath = 10.0;
+                }
+            }
+
+            // --- 2. 低频 UI 更新 (每 100ms 更新一次，解决卡顿) ---
+            // 只有当距离上次渲染超过 100ms 时，才去动 DOM
+            if (now - state.lastRender > 100) {
+                state.lastRender = now;
+
+                if(cfg.time === 'endless') {
+                    $('time-val').innerText = fmtTime(state.timer);
+                }
+                else if(cfg.time === 'hourglass') {
+                    $('time-val').innerText = Math.max(0, state.timer).toFixed(1);
+                    let pct = (state.timer / 60) * 100;
+                    $('timer-bar').style.width = pct + "%";
+                }
+                else if(cfg.time === 'breathing') {
+                    let pct = (state.breath / 10.0) * 100;
+                    $('timer-bar').style.width = pct + "%";
+                    $('time-val').innerText = state.breath.toFixed(1);
+                    
+                    if(state.breath <= 3) $('timer-bar').style.backgroundColor = 'var(--alert-color)';
+                    else $('timer-bar').style.backgroundColor = 'var(--primary-color)';
                 }
             }
         }
@@ -1246,7 +1252,7 @@
                     d.style.letterSpacing = "1px";
                 } else {
                     if(h.status === 'fail') d.style.color = 'var(--alert-color)';
-                    d.innerText = `[${originalIndex.toString().padStart(2,'0')}]  ${h.cards.join(' ')}`;
+                    d.innerText = `[${originalIndex.toString()}]  ${h.cards.join(' ')}`;
                 }
 
                 d.onclick = function() {
