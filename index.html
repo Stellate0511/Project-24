@@ -1082,17 +1082,29 @@
             }
             // === 情况 A: 无限模式 ===
             else if (cfg.rounds === -1) {
-                // 在无限模式下，即使是 Miracle 结局，也要结算之前的成绩
-                // 此时 Miracle 只是终止了游戏，不影响之前成绩的有效性
-                
-                if (bestVal === null || survivalScore > bestVal) {
-                    localStorage.setItem(key, survivalScore);
-                    recordEl.innerText = `NEW RECORD UPDATED`;
-                    recordEl.style.color = "var(--success-color)";
-                    recordEl.style.animation = "pulse 1s infinite";
-                } else {
-                    recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
-                    recordEl.style.color = "#888"; 
+                // 在无限模式下，只有生存分数 > 0 才具备“刷新记录”的资格
+                // 这相当于竞速模式下的 "Win"
+                if (survivalScore > 0) {
+                    if (bestVal === null || survivalScore > bestVal) {
+                        localStorage.setItem(key, survivalScore);
+                        recordEl.innerText = "NEW RECORD UPDATED";
+                        recordEl.style.color = "var(--success-color)";
+                        recordEl.style.animation = "pulse 1s infinite";
+                    } else {
+                        recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
+                        recordEl.style.color = "#888"; 
+                        recordEl.style.animation = "none";
+                    }
+                } 
+                // 如果得分是 0 (第1局就挂了)，相当于竞速模式下的 "Fail"
+                // 此时不更新记录，只展示已有记录或 NO RECORD
+                else {
+                    if (bestVal !== null) {
+                        recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
+                    } else {
+                        recordEl.innerText = "NO RECORD";
+                    }
+                    recordEl.style.color = "#666";
                     recordEl.style.animation = "none";
                 }
             }
