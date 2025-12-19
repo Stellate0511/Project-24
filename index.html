@@ -474,6 +474,8 @@
                 if(p.id==='opt-time') cfg.time = e.target.dataset.val;
                 if(p.id==='opt-life') cfg.life = e.target.dataset.val;
                 if(p.id==='opt-rounds') cfg.rounds = parseInt(e.target.dataset.val);
+
+                localStorage.setItem('p24_last_config', JSON.stringify(cfg));
             }
         });
 
@@ -1111,6 +1113,40 @@
             }
         }
         loadData();
+
+        // --- 自动加载上次的菜单选项 ---
+        function loadLastConfig() {
+            const saved = localStorage.getItem('p24_last_config');
+            if (!saved) return; // 如果没有记录，使用默认值
+
+            try {
+                const parsed = JSON.parse(saved);
+                // 更新 cfg 对象
+                Object.assign(cfg, parsed);
+
+                // 辅助函数：更新UI选中状态
+                const setUI = (groupId, val) => {
+                    const group = $(groupId);
+                    if (!group) return;
+                    // 移除该组所有 active
+                    group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                    // 找到对应值的按钮并激活
+                    // 注意：dataset.val 都是字符串，所以这里要把 val 转字符串匹配
+                    const target = group.querySelector(`button[data-val="${val}"]`);
+                    if (target) target.classList.add('active');
+                };
+
+                setUI('opt-deck', cfg.deck);
+                setUI('opt-time', cfg.time);
+                setUI('opt-life', cfg.life);
+                setUI('opt-rounds', cfg.rounds);
+
+            } catch (e) {
+                console.error("Config load error", e);
+            }
+        }
+        // 立即执行加载
+        loadLastConfig();
 
         // --- 新增：键盘事件监听 ---
         document.addEventListener('keydown', (e) => {
