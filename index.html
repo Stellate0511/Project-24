@@ -471,7 +471,27 @@
         .profile-info { display: flex; flex-direction: column; gap: 2px; }
         .profile-name { color: var(--text-color); font-size: 0.9rem; font-weight: bold; text-shadow: var(--text-glow) rgba(0, 243, 255, 0.5); font-family: var(--font-main); }
         .profile-role { color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px; font-weight: bold; }
-        @media (max-width: 600px) { #profile-link { display: none; } }
+        /* 移动端适配：屏幕变窄时 */
+        @media (max-width: 600px) {
+            /* 1. 不再隐藏整个连接，而是让它保持显示 */
+            #profile-link { 
+                display: flex; 
+                /* 稍微调整位置，适配手机窄边框 */
+                top: 15px;
+                left: 15px;
+            }
+
+            /* 2. 只隐藏文字部分 */
+            #profile-link .profile-info { 
+                display: none; 
+            }
+
+            /* 3. (可选) 头像稍微缩小一点点，显得更精致 */
+            #profile-link img {
+                width: 40px;
+                height: 40px;
+            }
+        }
 
         /* === 窗口抖动动画 === */
         @keyframes shake-window {
