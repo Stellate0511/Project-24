@@ -684,6 +684,21 @@
                     el.classList.remove('anim-enter');
                 });
             }, 700); // 略长于动画时间(0.6s)
+
+            // === 反向头奖检查 ===
+            // 只有当手牌满10张，且数据库已加载时才检查
+            if (state.hand.length === 10 && isDbReady) {
+                // 如果极其罕见地完全无解
+                if (!checkSolvability(state.hand)) {
+                    // 记录一下这组神奇的牌
+                    const miracleHand = state.hand.map(c => c.val).join(', ');
+                    
+                    // 稍微延迟一点点触发，让玩家看到牌铺满的瞬间
+                    setTimeout(() => {
+                        gameOver(miracleHand, true, true); // 第三个参数 true 代表这是“奇迹”结局
+                    }, 500);
+                }
+            }
         }
 
         function sortHand() {
@@ -896,6 +911,26 @@
             updateButtonStates();
         }
 
+        // --- 检查当前手牌是否有任意解 ---
+        function checkSolvability(hand) {
+            if (!isDbReady) return true; // 数据库没好默认当成有解，防止误判
+            
+            const indices = hand.map((_, i) => i);
+            // 检查 4张、3张、2张 的组合
+            const trySizes = [4, 3, 2]; 
+
+            for (let r of trySizes) {
+                let combos = getCombinations(indices, r);
+                for (let comboIndices of combos) {
+                    let values = comboIndices.map(i => hand[i].val).sort((a, b) => a - b);
+                    if (solutionDB.has(values.join(','))) {
+                        return true; // 只要找到一个解，立刻返回 true
+                    }
+                }
+            }
+            return false; // 找遍了所有组合都没解
+        }
+        
         // --- Logic ---
         function execCards() {
             if(state.selection.length < 2) return;
@@ -958,49 +993,64 @@
             return `p24_record_${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
         }
         
-        function gameOver(msg, win) {
+        function gameOver(msg, win, isMiracle = false) {
             state.active = false;
             clearInterval(state.interval);
             
             $('game-over').style.display = 'flex';
             const title = $('end-title');
+            const msgEl = $('end-msg');
+            const recordEl = $('end-record');
             
-            // 1. 设置标题和基本耗时
-            title.innerText = win ? "SUCCESS" : "FAILURE";
-            title.className = win ? "title-success" : "title-failure";
-            $('end-msg').innerText = msg;
-            
-            // 1. 总耗时
+            // 1. 设置标题样式
+            if (isMiracle) {
+                title.innerText = "LEGENDARY"; 
+                title.style.color = "#FFD700"; 
+                title.style.textShadow = "0 0 20px #FFD700, 0 0 40px #FF4500";
+                msgEl.innerHTML = `<span style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">IMPOSSIBLE HAND DISCOVERED</span><span style="color:#fff; font-size:1.2rem; font-family:monospace">[ ${msg} ]</span>`;
+            } 
+            else {
+                title.innerText = win ? "SUCCESS" : "FAILURE";
+                title.className = win ? "title-success" : "title-failure";
+                title.style.color = ""; 
+                title.style.textShadow = "";
+                msgEl.innerText = msg;
+            }
+
+            // 2. 耗时显示
             let timeText = "TOTAL TIME: " + fmtTimePrecise(state.totalTime);
             $('end-time').innerText = timeText;
 
-            // 2. 记录判定逻辑
-            const recordEl = $('end-record');
+            // 3. 记录判定逻辑
             const key = getRecordKey();
             const bestTimeStr = localStorage.getItem(key);
             let bestTime = bestTimeStr ? parseFloat(bestTimeStr) : null;
 
             if (state.hintUsed) {
-                // 情况A：使用了提示 -> 成绩无效
                 recordEl.innerText = "RECORD INVALID (ASSISTED)";
-                recordEl.style.color = "var(--alert-color)"; // 红色
-            } 
+                recordEl.style.color = "var(--alert-color)";
+            }
+            else if (isMiracle) {
+                // --- 修正：奇迹结局不计入记录 ---
+                recordEl.innerText = "RECORD UNAFFECTED";
+                recordEl.style.color = "#FFD700"; // 金色提示
+                recordEl.style.animation = "none";
+            }
             else if (win) {
+                // 只有普通胜利且未用提示，才算记录
                 if (bestTime === null || state.totalTime < bestTime) {
-                    // 破纪录
                     localStorage.setItem(key, state.totalTime);
-                    recordEl.innerText = "NEW RECORD UPDATED"; // 或者显示具体的 "NEW RECORD: " + fmtTimePrecise(state.totalTime)
+                    recordEl.innerText = "NEW RECORD UPDATED";
                     recordEl.style.color = "var(--success-color)";
                     recordEl.style.animation = "pulse 1s infinite"; 
                 } else {
-                    // 未破纪录：使用精准格式
                     recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestTime)}`;
                     recordEl.style.color = "#888";
                     recordEl.style.animation = "none";
                 }
-            }
+            } 
             else {
-                // 情况C：失败 -> 仅显示现有记录
+                // 失败
                 if (bestTime !== null) {
                     recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestTime)}`;
                 } else {
@@ -1096,7 +1146,8 @@
                 setStatus("NO MOVES - DRAW CARD", "var(--primary-color)");
                 $('btn-draw').classList.add('suggest');
             } else {
-                setStatus("DEADLOCK", "var(--alert-color)");
+                // 如果运行到了，说明之前的自动检查漏了（可能是因为当时DB没加载好）
+                setStatus("DEADLOCK / DB LAG", "var(--alert-color)");
             }
         }
 
