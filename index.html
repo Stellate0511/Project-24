@@ -444,7 +444,7 @@
             <div id="review-list"></div>
             <div id="review-detail">
                 <div id="review-display"></div>
-                <div style="color:#555; font-size:0.7rem; margin-bottom:15px;">SOLUTION DATA</div>
+                <div id="lbl-sol" style="color:#555; font-size:0.7rem; margin-bottom:15px;">SOLUTION DATA</div>
                 <div id="review-sol" style="font-size:1.1rem; color:var(--primary-color)">[DATA PENDING]</div>
                 <button onclick="$('review-ui').style.display='none'" style="margin-top:30px; border-color:var(--alert-color)">CLOSE</button>
             </div>
@@ -999,21 +999,27 @@
                 }
 
             } else {
-                // === 失败逻辑 ===
-                fail("INVALID / NO SOLUTION"); // 1. 先扣血 (fail函数内部会判断是否死亡)
+                // 1. 先记录这手牌失败了
+                state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
 
-                // 2. 如果扣血后还没死 (state.active 依然为 true)
+                // 2. 预测死亡：如果当前机会不足以承受这次失败
+                // (注意：fail函数内部是先减chances再判断 <0，所以这里用 <= 0 判断是否是最后一击)
+                if (state.chances <= 0) {
+                    // 既然这手牌导致了死亡，它们应该被视为“打出去了”，不应出现在剩余手牌中
+                    state.hand = state.hand.filter(c => !state.selection.includes(c.id));
+                    // 视觉上清空选中，防止残留
+                    state.selection = [];
+                    // 这里不调用render，因为马上就gameOver弹窗覆盖了，
+                    // 而且保持界面定格在出牌前一瞬间可能更有戏剧感，或者你也可以加上 render() 让牌消失
+                }
+
+                // 3. 触发失败 (内部会调用 gameOver)
+                fail("INVALID / NO SOLUTION"); 
+
+                // 4. 如果没死（active还是true），才进行界面重置
                 if (state.active) {
-                    // 呼吸模式重置时间（再给一次思考机会）
                     if(cfg.time === 'breathing') state.breath = 10.0;
-                    
-                    // 取消选中状态，让玩家重选
                     clearSelection();
-                    
-                    // 注意：这里没有移除手牌，也没有 render，玩家可以立刻尝试别的组合
-                } else {
-                    // 如果死掉了，记录这最后一次失败的历史以便复盘
-                    state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
                 }
             }
         }
@@ -1038,6 +1044,15 @@
         function gameOver(msg, win, isMiracle = false) {
             state.active = false;
             clearInterval(state.interval);
+
+            // 如果手里还有牌（无论是输了还是奇迹），都记录下来
+            if (state.hand.length > 0) {
+                state.history.push({ 
+                    cards: state.hand.map(c => c.val), 
+                    sol: null, // 剩余手牌通常不需要显示特定解法（或者由系统后续判断），这里置空
+                    status: 'remaining' // 特殊状态标记
+                });
+            }
             
             $('game-over').style.display = 'flex';
             const title = $('end-title');
@@ -1171,35 +1186,65 @@
             let list = $('review-list');
             let cardDisplay = $('review-display');
             let solDisplay = $('review-sol');
+            let lblSol = $('lbl-sol'); // 获取标签元素
+
             list.innerHTML = ''; cardDisplay.innerHTML = ''; solDisplay.innerText = ''; 
             
             if (state.history.length === 0) {
+                // 没记录时特殊处理一下显隐
+                lblSol.style.display = 'block';
+                solDisplay.style.display = 'block';
                 solDisplay.innerText = "NO RECORDS";
                 solDisplay.style.color = "var(--secondary-color)";
                 return;
             }
 
-            state.history.forEach((h, i) => {
+            // 倒序遍历，让最新的在最上面
+            [...state.history].reverse().forEach((h, i) => {
                 let d = document.createElement('div');
                 d.className = 'log-entry';
-                if(h.status === 'fail') d.style.color = 'var(--alert-color)';
-                d.innerText = `[${i+1}]  ${h.cards.join(' ')}`;
+                let originalIndex = state.history.length - i;
+
+                if (h.status === 'remaining') {
+                    d.innerText = `[REMAINING]`; 
+                    d.style.color = "var(--secondary-color)";
+                    d.style.letterSpacing = "1px";
+                } else {
+                    if(h.status === 'fail') d.style.color = 'var(--alert-color)';
+                    d.innerText = `[${originalIndex.toString().padStart(2,'0')}]  ${h.cards.join(' ')}`;
+                }
+
                 d.onclick = function() {
                     Array.from(list.children).forEach(child => child.classList.remove('active'));
                     d.classList.add('active');
+                    
                     cardDisplay.innerHTML = h.cards.map(v => 
                         `<div class="card selected" style="cursor:default">${v}</div>`
                     ).join('');
-                    if (h.sol) {
-                        solDisplay.innerText = h.sol;
-                        solDisplay.style.color = "var(--primary-color)";
+                    
+                    // === 修改重点：控制右侧显隐 ===
+                    if (h.status === 'remaining') {
+                        // 如果是剩余手牌，隐藏解法相关文字
+                        lblSol.style.display = 'none';
+                        solDisplay.style.display = 'none';
                     } else {
-                        solDisplay.innerText = "NO SOLUTION / INVALID";
-                        solDisplay.style.color = "var(--alert-color)";
+                        // 如果是普通记录，显示并填充内容
+                        lblSol.style.display = 'block';
+                        solDisplay.style.display = 'block';
+                        
+                        if (h.sol) {
+                            solDisplay.innerText = h.sol;
+                            solDisplay.style.color = "var(--primary-color)";
+                        } else {
+                            solDisplay.innerText = "NO SOLUTION / INVALID";
+                            solDisplay.style.color = "var(--alert-color)";
+                        }
                     }
                 };
                 list.appendChild(d);
             });
+            
+            // 默认选中第一项（也就是倒序后的最新一项）
             if (list.firstChild) list.firstChild.click();
         }
 
