@@ -380,6 +380,69 @@
         #review-display.mini-view .card.selected {
             transform: translateY(-8px) !important; 
         }
+
+        /* --- 左上角头像挂件 (窗口内) --- */
+        #profile-link {
+            position: absolute;
+            /* 调整到窗口内部左上角的合适位置 */
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* 稍微缩进一点间距 */
+            text-decoration: none;
+            /* 确保在启动屏幕(z-index:100)之上 */
+            z-index: 101; 
+            transition: all 0.3s ease;
+            cursor: pointer;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        #profile-link:hover {
+            filter: brightness(1.2);
+        }
+        #profile-link:hover img {
+            box-shadow: 0 0 20px var(--primary-color);
+            transform: scale(1.05) rotate(5deg); /* 增加一点点旋转动感 */
+        }
+
+        #profile-link img {
+            width: 45px; /* 稍微缩小一点点以适应内部空间 */
+            height: 45px;
+            /* 核心修改：圆形蒙版 */
+            border-radius: 50%; 
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            background: #000;
+            object-fit: cover;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .profile-info {
+            display: flex; 
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .profile-name {
+            color: var(--text-color);
+            font-size: 0.9rem; /* 字体稍微减小适配 */
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+
+        .profile-role {
+            color: var(--secondary-color);
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        /* 移动端适配：仅在手机窄屏(<600px)时隐藏，防止与标题重叠 */
+        @media (max-width: 600px) {
+            #profile-link { display: none; }
+        }
     </style>
 </head>
     
@@ -387,6 +450,13 @@
     <div id="main-window">
         <!-- 启动菜单 -->
         <div id="start-screen">
+            <a id="profile-link" href="/">
+                <img src="avatar.jpg" alt="Avatar">
+                <div class="profile-info">
+                    <span class="profile-name">回到主页</span>
+                    <span class="profile-role">LINK START</span>
+                </div>
+            </a>
             <h1>PROJECT: 24</h1>
             <div class="config-group">
                 <span class="config-title">DATASET (牌库)</span>
@@ -483,9 +553,11 @@
             <div id="end-title" class="title-failure">FAILURE</div>
             <div id="end-msg" style="margin-bottom:20px; letter-spacing:1px; color:#888">SIGNAL LOST</div>
             <div id="end-time" class="end-stat" style="margin-bottom: 5px; font-weight: bold; color: var(--primary-color)"></div>
-            <div id="end-record" class="end-stat" style="font-size: 0.8rem; color: #666; margin-bottom: 30px; letter-spacing: 1px;"></div>
-            <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">
-                <button onclick="openReview()">REVIEW</button>
+            <div id="end-record" class="end-stat" style="font-size: 0.8rem; color: #666; margin-bottom: 5px; letter-spacing: 1px;"></div>
+        
+            <div id="end-config" class="end-stat" style="font-size: 0.7rem; color: #555; margin-bottom: 5px; font-family: monospace; text-transform: uppercase;"></div>
+            <div id="end-clears" class="end-stat" style="font-size: 0.85rem; color: var(--secondary-color); margin-bottom: 30px; letter-spacing: 1px; font-weight:bold;"></div>
+            <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">    <button onclick="openReview()">REVIEW</button>
                 <button onclick="startGame()">RETRY</button>
                 <button onclick="backToMenu()">MENU</button>
             </div>
@@ -1278,6 +1350,54 @@
                 recordEl.style.color = "#666";
                 recordEl.style.animation = "none";
             }
+
+            
+            // === 1. 显示游戏配置 (Config) ===
+            // 定义映射表，方便显示漂亮的文本
+            const deckMap = { 'simple': 'SIMPLE', 'classic': 'CLASSIC', 'standard': 'STANDARD' };
+            const timeMap = { 'endless': 'ENDLESS', 'hourglass': 'HOURGLASS', 'breathing': 'BREATHING' };
+            const lifeMap = { 'casual': 'CASUAL', 'challenge': 'CHALLENGE', 'extreme': 'EXTREME' };
+            // 赛程特殊处理
+            let roundTxt = cfg.rounds;
+            if (cfg.rounds === 1) roundTxt = 'BASE';
+            else if (cfg.rounds === 10) roundTxt = 'ENDURANCE';
+            else if (cfg.rounds === -1) roundTxt = 'INFINITE';
+
+            // 拼接字符串：STANDARD / BREATHING / CHALLENGE / BASE
+            const configStr = [
+                deckMap[cfg.deck] || cfg.deck,
+                timeMap[cfg.time] || cfg.time,
+                lifeMap[cfg.life] || cfg.life,
+                roundTxt
+            ].join(' / ').toUpperCase();
+
+            $('end-config').innerText = configStr;
+
+
+            // === 2. 处理通关次数 (Clear Count) ===
+            const clearKey = 'p24_total_clears';
+            // 从本地存储读取当前次数，默认为 0
+            let clearCount = parseInt(localStorage.getItem(clearKey) || '0');
+
+            // 只有当：Win为真 且 不是奇迹结局(Legendary) 时，才算作一次正式通关
+            // 注意：无限模式(rounds=-1)通常以死亡结束，所以不算通关，这符合逻辑
+            if (win && !isMiracle) {
+                clearCount++;
+                localStorage.setItem(clearKey, clearCount);
+            }
+
+            // 显示文本
+            const clearsEl = $('end-clears');
+            clearsEl.innerText = `TOTAL CLEARS: ${clearCount}`;
+            
+            // 如果这次通关了，给文字加个亮色特效
+            if (win && !isMiracle) {
+                clearsEl.style.color = "var(--success-color)";
+                clearsEl.style.textShadow = "0 0 10px rgba(0, 255, 157, 0.3)";
+            } else {
+                clearsEl.style.color = "var(--secondary-color)";
+                clearsEl.style.textShadow = "none";
+            }
         }
 
         function backToMenu() {
@@ -1425,11 +1545,10 @@
         }
 
         async function loadData() {
-            try {
-                setStatus("LOADING DATA...", "var(--primary-color)");
-                const response = await fetch('https://stellate0511.github.io/Project-24/database.txt');
-                if (!response.ok) throw new Error("File not found");
-                const text = await response.text();
+            setStatus("LOADING DATA...", "var(--primary-color)");
+
+            // 内部辅助函数：解析文本并填入 Map
+            const processData = (text) => {
                 solutionDB.clear();
                 text.split('\n').forEach(line => {
                     line = line.trim();
@@ -1439,13 +1558,49 @@
                     nums.sort((a, b) => a - b);
                     solutionDB.set(nums.join(','), line);
                 });
+            };
+
+            try {
+                // 1. 优先尝试网络请求
+                const response = await fetch('https://stellate0511.github.io/Project-24/database.txt');
+                if (!response.ok) throw new Error("Network connection failed");
+                
+                const text = await response.text();
+                
+                // 2. 网络加载成功：解析数据
+                processData(text);
+                
+                // 3. 核心修改：将成功获取的数据存入本地缓存
+                try {
+                    localStorage.setItem('p24_db_cache', text);
+                    console.log("Database cached to LocalStorage.");
+                } catch (e) {
+                    console.warn("Cache write failed (storage full?)", e);
+                }
+
                 isDbReady = true;
                 setStatus("SYSTEM READY", "var(--secondary-color)");
-                console.log(`Database loaded: ${solutionDB.size} entries.`);
+                console.log(`Database loaded (Online): ${solutionDB.size} entries.`);
+
             } catch (err) {
-                console.error(err);
-                setStatus("DB LOAD FAIL", "var(--alert-color)");
-                alert("无法读取数据库！");
+                console.warn("Network load failed, attempting fallback...", err);
+                
+                // 4. 网络失败：尝试读取本地缓存
+                const cachedText = localStorage.getItem('p24_db_cache');
+                
+                if (cachedText) {
+                    // 5. 缓存命中：使用缓存数据
+                    processData(cachedText);
+                    isDbReady = true;
+                    // 给用户一个小提示：当前是离线模式
+                    setStatus("READY (OFFLINE)", "var(--secondary-color)");
+                    console.log(`Database loaded (Cache): ${solutionDB.size} entries.`);
+                } else {
+                    // 6. 彻底失败（既没网也没缓存）
+                    console.error("Critical: No network and no cache.");
+                    setStatus("DB LOAD FAIL", "var(--alert-color)");
+                    alert("连接失败，且无本地缓存数据！");
+                }
             }
         }
         loadData();
