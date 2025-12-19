@@ -696,18 +696,25 @@
                 });
             }, 700); // 略长于动画时间(0.6s)
 
-            // === 反向头奖检查 ===
-            // 只有当手牌满10张，且数据库已加载时才检查
-            if (state.hand.length === 10 && isDbReady) {
-                // 如果极其罕见地完全无解
-                if (!checkSolvability(state.hand)) {
-                    // 记录一下这组神奇的牌
-                    const miracleHand = state.hand.map(c => c.val).join(', ');
-                    
-                    // 稍微延迟一点点触发，让玩家看到牌铺满的瞬间
-                    setTimeout(() => {
-                        gameOver(miracleHand, true, true); // 第三个参数 true 代表这是“奇迹”结局
-                    }, 500);
+            // === 状态检查 ===
+            if (isDbReady) {
+                // 1. 优先检查：反向头奖 (满手牌无解 = 奇迹)
+                if (state.hand.length === 10) {
+                    if (!checkSolvability(state.hand)) {
+                        const miracleHand = state.hand.map(c => c.val).join(', ');
+                        setTimeout(() => {
+                            gameOver(miracleHand, true, true); 
+                        }, 1000);
+                        return; // 如果触发奇迹，就不继续往下检查死路了
+                    }
+                }
+
+                // 2. --- 修改重点：新增死路检查 ---
+                // 条件：牌库空了 + 手牌没满(满了走上面) + 手牌不为空 + 无解
+                if (state.deck.length === 0 && state.hand.length > 0) {
+                    if (!checkSolvability(state.hand)) {
+                        fail("DEAD END / STAGNATION"); // 触发失败扣血，理由：拖沓/死局
+                    }
                 }
             }
         }
@@ -977,7 +984,18 @@
                         setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
                     }
                 } else if (state.active && state.hand.length > 0) {
-                    setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+                    // 只有当牌库空了，且手里还有牌，且没通关时检查
+                    if (state.deck.length === 0) {
+                        if (!checkSolvability(state.hand)) {
+                            fail("DEAD END / STAGNATION"); // 触发失败扣血，理由：拖沓/死局
+                        } else {
+                            // 有解，恢复 Ready
+                            setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+                        }
+                    } else {
+                        // 牌库还有牌，正常恢复 Ready
+                        setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+                    }
                 }
 
             } else {
