@@ -326,7 +326,21 @@
         .log-entry { padding: 15px; border-bottom: 1px solid #222; font-size: 0.75rem; color: #666; cursor: pointer; text-align: right; }
         .log-entry:hover, .log-entry.active { background: #111; color: var(--primary-color); border-right: 3px solid var(--primary-color); }
         #review-detail { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #review-display { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+        #review-display { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            
+            /* 新增属性 */
+            width: 100%;          /* 占满宽度 */
+            max-height: 70vh;     
+            max-height: 70dvh;     /* 限制高度不超过屏幕高度的 60%，留出空间给按钮 */
+            overflow-y: auto;     /* 内容超出时显示垂直滚动条 */
+            padding: 30px 10px 10px 10px;
+            align-content: flex-start; /* 防止内容少时分散对齐，强制靠上 */
+        }
 
     </style>
 </head>
