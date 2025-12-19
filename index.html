@@ -660,6 +660,7 @@
             drawCards(10);
             
             setStatus("SYSTEM READY", "var(--secondary-color)");
+            state.active = true;
         }
 
         function tick() {
@@ -1014,13 +1015,24 @@
 
                 // 检查是否下一轮或通关
                 if(state.active && state.hand.length === 0) {
+                    
+                    // === 修改重点：暂停游戏防止“双重重置” ===
+                    state.active = false; // 暂停 tick 循环
+                    
+                    // 手动定格进度条为满格（视觉反馈：完美！）
+                    if (state.barEl) {
+                        state.barEl.style.transform = 'scaleX(1)';
+                        if(cfg.time === 'breathing') state.barEl.style.backgroundColor = 'var(--primary-color)';
+                    }
+                    // -------------------------------------
+
                     if (cfg.rounds === -1 || state.currentRound < state.maxRounds) {
                         state.currentRound++;
                         let msg = cfg.rounds === -1 ? "WAVE CLEARED" : "NEXT PHASE";
                         setStatus(msg + "...", "var(--primary-color)");
                         setTimeout(() => {
-                            startRound();
-                        }, 500); 
+                            startRound(); // startRound 里面现在会把 active 设回 true
+                        }, 100); 
                     } else {
                         setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
                     }
