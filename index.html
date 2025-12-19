@@ -451,7 +451,7 @@
         <!-- 启动菜单 -->
         <div id="start-screen">
             <a id="profile-link" href="/">
-                <img src="avatar.jpg" alt="Avatar">
+                <img src="./avatar.jpg" alt="Avatar">
                 <div class="profile-info">
                     <span class="profile-name">回到主页</span>
                     <span class="profile-role">LINK START</span>
@@ -1373,15 +1373,23 @@
 
             $('end-config').innerText = configStr;
 
-
             // === 2. 处理通关次数 (Clear Count) ===
             const clearKey = 'p24_total_clears';
-            // 从本地存储读取当前次数，默认为 0
             let clearCount = parseInt(localStorage.getItem(clearKey) || '0');
 
-            // 只有当：Win为真 且 不是奇迹结局(Legendary) 时，才算作一次正式通关
-            // 注意：无限模式(rounds=-1)通常以死亡结束，所以不算通关，这符合逻辑
-            if (win && !isMiracle) {
+            // === 修改重点：重新定义“通关” ===
+            // 判定条件：
+            // 1. 普通模式：必须是 Win (win === true)
+            // 2. 无限模式：只要生存分数 > 0 (survivalScore > 0)，即至少过了一关
+            // 3. 通用排除：奇迹结局 (isMiracle) 不算通关
+            
+            const isStandardWin = (cfg.rounds !== -1 && win);
+            const isInfiniteClear = (cfg.rounds === -1 && survivalScore > 0);
+            
+            // 是否算作“有效通关”
+            const isValidClear = (isStandardWin || isInfiniteClear) && !isMiracle;
+
+            if (isValidClear) {
                 clearCount++;
                 localStorage.setItem(clearKey, clearCount);
             }
@@ -1390,8 +1398,8 @@
             const clearsEl = $('end-clears');
             clearsEl.innerText = `TOTAL CLEARS: ${clearCount}`;
             
-            // 如果这次通关了，给文字加个亮色特效
-            if (win && !isMiracle) {
+            // 样式处理：如果是有效通关，显示高亮绿色
+            if (isValidClear) {
                 clearsEl.style.color = "var(--success-color)";
                 clearsEl.style.textShadow = "0 0 10px rgba(0, 255, 157, 0.3)";
             } else {
