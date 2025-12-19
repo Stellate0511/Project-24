@@ -527,21 +527,22 @@
             state.totalTime = 0; 
             state.history = [];
             state.hintUsed = false;
+            state.lastTick = Date.now();
             
             // 设置赛程
             state.maxRounds = cfg.rounds;
             state.currentRound = 1;
 
-            // --- 新增：控制 RND 指示器显隐 ---
             if (state.maxRounds > 1) {
                 $('round-display').style.display = 'flex'; // 多局模式：显示
             } else {
                 $('round-display').style.display = 'none'; // 基础模式：隐藏
             }
-            // --------------------------------
 
-            // 初始化上一帧时间戳
-            state.lastTick = Date.now();
+            if(cfg.life === 'casual') state.chances = 3;
+            else if(cfg.life === 'challenge') state.chances = 1;
+            else state.chances = 0; // Extreme
+            updateStats();
             
             // 启动时钟
             clearInterval(state.interval);
@@ -609,10 +610,10 @@
             $('deck-val').innerText = state.deck.length; 
 
             // 5. 重置机会
-            if(cfg.life === 'casual') state.chances = 3;
-            else if(cfg.life === 'challenge') state.chances = 1;
-            else state.chances = 0;
-            updateStats();
+            // if(cfg.life === 'casual') state.chances = 3;
+            // else if(cfg.life === 'challenge') state.chances = 1;
+            // else state.chances = 0;
+            // updateStats();
 
             // 6. 重置单局计时
             if(cfg.time === 'hourglass') state.timer = 60.0;
