@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PROJECT: 24</title>
     <style>
+        /* === 1. 全局变量定义 === */
         :root {
+            /* --- 默认主题 (Dark / Cyber) --- */
             --bg-color: #020408;
             --win-bg: #050a14;
             --primary-color: #00f3ff;
@@ -15,6 +17,38 @@
             --text-color: #e0fbfc;
             --card-w: 65px;
             --card-h: 95px;
+            
+            /* 字体与风格变量 */
+            --font-main: 'Courier New', Courier, monospace;
+            --radius-main: 0px; 
+            --shadow-glow: 0 0 50px rgba(0, 243, 255, 0.08);
+            --btn-bg: rgba(0, 95, 115, 0.15);
+            --card-bg: rgba(8, 20, 30, 0.6);
+            --text-glow: 0 0 10px; /* 控制文字发光开关 */
+            --deco-display: block; /* 控制赛博角标显示 */
+        }
+
+        /* === 2. 亮色/可爱主题 (Light / Cute) === */
+        html[data-theme="light"] {
+            /* 背景：暖米白 */
+            --bg-color: #f9f7f2; 
+            --win-bg: #ffffff;
+            
+            /* 配色：樱花粉、天空蓝、薄荷绿 */
+            --primary-color: #ff8fab; 
+            --secondary-color: #8d99ae;
+            --alert-color: #ff6b6b;
+            --success-color: #4ecdc4;
+            --text-color: #555b6e;
+            
+            /* 风格：圆润、无衬线、实心投影 */
+            --font-main: "Nunito", "Quicksand", system-ui, sans-serif;
+            --radius-main: 20px;
+            --shadow-glow: 0 10px 30px rgba(0,0,0,0.08);
+            --btn-bg: #f0f0f0;
+            --card-bg: #ffffff;
+            --text-glow: 0 0 0; /* 关闭发光 */
+            --deco-display: none; /* 隐藏角标 */
         }
 
         * { box-sizing: border-box; }
@@ -22,11 +56,12 @@
         body {
             margin: 0;
             background-color: var(--bg-color);
+            /* 默认暗色渐变，亮色模式会被下面的 override 覆盖 */
             background-image: radial-gradient(circle at center, #0a1525 0%, #000 100%);
             color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
-            min-height: 100vh;      /* fallback */
-            min-height: 100dvh;     /* 关键：动态视口 */
+            font-family: var(--font-main);
+            min-height: 100vh;
+            min-height: 100dvh;
             width: 100vw;
             display: flex;
             justify-content: center;
@@ -35,35 +70,49 @@
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
+            transition: background-color 0.5s, color 0.3s; /* 主题切换动画 */
+        }
+        
+        /* 亮色模式移除背景渐变 */
+        html[data-theme="light"] body {
+            background-image: none;
         }
 
         /* --- 主窗口 --- */
         #main-window {
-            width: 95%;
-            max-width: 800px;
-            height: 90vh; 
-            height: 90dvh;
-            max-height: 750px;
-            min-height: 500px; 
+            width: 95%; max-width: 800px;
+            height: 90vh; height: 90dvh;
+            max-height: 750px; min-height: 500px;
             background: var(--win-bg);
             border: 1px solid var(--secondary-color);
-            box-shadow: 0 0 50px rgba(0, 243, 255, 0.08);
+            box-shadow: var(--shadow-glow);
             position: relative;
-            display: flex;
-            flex-direction: column; 
+            display: flex; flex-direction: column;
+            
+            /* 主题变量控制圆角 */
+            border-radius: var(--radius-main);
+            transition: all 0.5s;
+        }
+        
+        /* 亮色模式修正主窗口边框 */
+        html[data-theme="light"] #main-window {
+            border: 1px solid #eee;
         }
 
+        /* 赛博角标装饰 (通过变量控制显隐) */
         #main-window::before {
             content: ''; position: absolute; top: 0; left: 0; width: 20px; height: 20px;
             border-top: 2px solid var(--primary-color); border-left: 2px solid var(--primary-color); z-index: 10;
+            display: var(--deco-display);
         }
         #main-window::after {
             content: ''; position: absolute; bottom: 0; right: 0; width: 20px; height: 20px;
             border-bottom: 2px solid var(--primary-color); border-right: 2px solid var(--primary-color); z-index: 10;
+            display: var(--deco-display);
         }
 
         button {
-            background: rgba(0, 95, 115, 0.15);
+            background: var(--btn-bg);
             border: 1px solid var(--secondary-color);
             color: var(--text-color);
             padding: 10px 20px;
@@ -72,48 +121,95 @@
             text-transform: uppercase;
             font-weight: bold;
             font-size: 0.85rem;
-            transition: all 0.2s;
+            transition: all 0.3s;
             touch-action: manipulation;
+            border-radius: var(--radius-main); /* 跟随主题变圆 */
         }
+        
+        html[data-theme="light"] button {
+             border-color: transparent; /* 亮色模式默认无边框 */
+             color: #888;
+        }
+
         button:hover:not(:disabled) {
-            background: var(--primary-color); color: var(--bg-color); box-shadow: 0 0 10px var(--primary-color);
+            background: var(--primary-color); 
+            color: var(--bg-color); /* 亮色模式下文字变深，暗色模式下背景变黑，通用 */
+            box-shadow: 0 0 15px var(--primary-color);
         }
+        
+        /* 亮色模式 Hover 修正：白色文字 */
+        html[data-theme="light"] button:hover:not(:disabled) {
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(255, 143, 171, 0.6); /* 柔和粉色阴影 */
+            transform: translateY(-2px);
+        }
+
         button:disabled {
             opacity: 0.3; cursor: not-allowed; border-color: #333; color: #666; background: transparent;
         }
         button.active {
             background: var(--primary-color); color: var(--bg-color);
         }
+        html[data-theme="light"] button.active {
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(255, 143, 171, 0.4);
+        }
 
         /* --- 启动菜单 --- */
         #start-screen {
-            flex: 1;
-            width: 100%;
-            background: rgba(5, 10, 20, 0.98);
+            flex: 1; width: 100%;
+            background: var(--win-bg); /* 跟随主题 */
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             z-index: 100;
+            border-radius: var(--radius-main);
         }
+        
+        /* 亮色模式启动屏稍微透明一点 */
+        html[data-theme="dark"] #start-screen { background: rgba(5, 10, 20, 0.98); }
+
         h1 {
             font-size: 2.2rem; color: var(--primary-color);
-            text-shadow: 0 0 10px var(--primary-color);
+            text-shadow: var(--text-glow) var(--primary-color);
             margin-bottom: 2rem; letter-spacing: 4px; border-bottom: 2px solid;
             text-align: center;
+            background: transparent;
         }
+        /* 亮色模式 H1 修正 */
+        html[data-theme="light"] h1 {
+            border-bottom: 3px solid var(--primary-color); /* 更粗的线条 */
+            border-radius: 2px;
+            letter-spacing: 1px; /* 间距紧凑一点 */
+        }
+
         .config-group { margin-bottom: 20px; text-align: center; width: 85%; }
         .config-title { color: var(--secondary-color); font-size: 0.7rem; margin-bottom: 8px; display: block; }
         .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .btn-group button { flex: 1; padding: 10px 0; font-size: 0.8rem; min-width: 80px; }
         #start-btn { margin-top: 30px; font-size: 1.1rem; padding: 12px 50px; border-color: var(--primary-color); }
+        html[data-theme="light"] #start-btn { 
+            background: var(--primary-color); color: #fff; box-shadow: 0 5px 20px rgba(255,143,171,0.4);
+        }
+
+        /* --- 主题切换按钮 (仅控制位置) --- */
+        .theme-switch {
+            /* 1. 绝对定位到右上角 */
+            position: absolute !important; /* 加重要级防止被flex布局干扰 */
+            top: 20px;
+            right: 20px;
+            z-index: 102;
+            
+            /* 2. 重置外边距，防止位置偏移 */
+            margin: 0 !important;
+            
+            /* 3. 尺寸微调 (可选) */
+            /* 如果觉得普通按钮太大，可以稍微改小 padding，否则就删掉下面这就行 */
+            padding: 8px 15px; 
+            min-width: auto; /*不仅限于80px*/
+        }
 
         /* --- 游戏主界面 --- */
-        #game-ui { 
-            display: none; 
-            flex-direction: column; 
-            width: 100%; 
-            flex: 1; 
-            min-height: 0; 
-        }
+        #game-ui { display: none; flex-direction: column; width: 100%; flex: 1; min-height: 0; }
 
         .top-bar {
             min-height: 50px;
@@ -121,13 +217,22 @@
             padding: 10px 20px;
             background: rgba(0, 243, 255, 0.03);
             border-bottom: 1px solid rgba(0, 243, 255, 0.1);
-            flex-shrink: 0;
-            flex-wrap: wrap; gap: 10px;
+            flex-shrink: 0; flex-wrap: wrap; gap: 10px;
+            
+            border-top-left-radius: var(--radius-main);
+            border-top-right-radius: var(--radius-main);
         }
+        html[data-theme="light"] .top-bar {
+            background: rgba(255,255,255,0.8);
+            border-bottom: 1px solid #eee;
+        }
+
         .stat-group { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
         .stat-item { display: flex; flex-direction: row; gap: 8px; align-items: baseline; }
         .stat-label { font-size: 0.7rem; color: var(--secondary-color); }
-        .stat-val { font-size: 1rem; font-weight: bold; min-width: 25px; }
+        .stat-val { font-size: 1rem; font-weight: bold; min-width: 25px; text-shadow: var(--text-glow) var(--primary-color); }
+        html[data-theme="light"] .stat-val { color: var(--text-color); }
+        
         .menu-btns { display: flex; gap: 10px; }
         .menu-btns button { padding: 5px 12px; font-size: 0.7rem; height: 30px; }
 
@@ -139,130 +244,99 @@
             h1 { font-size: 1.8rem; }
         }
 
-        .progress-area {
-            height: 4px; width: 100%; background: #111; position: relative; flex-shrink: 0;
+        .progress-area { height: 4px; width: 100%; background: #111; position: relative; flex-shrink: 0; }
+        html[data-theme="light"] .progress-area { background: #eee; }
+        #timer-bar { 
+            height: 100%; 
+            background: var(--primary-color); 
+            width: 0%; /* 默认从0开始 */
+            transition: width 0.1s linear; /* 配合 JS 的 100ms 更新频率，保持丝滑 */
         }
-        #timer-bar { height: 100%; background: var(--primary-color); width: 0%; transition: width 0.1s linear; }
 
         /* --- 卡牌区 --- */
         #card-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            align-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 15px;
-            overflow-y: auto;
-            position: relative;
-            touch-action: none; 
-            user-select: none;
+            flex: 1; display: flex; justify-content: center; align-items: center; align-content: center;
+            flex-wrap: wrap; gap: 10px; padding: 15px; overflow-y: auto; position: relative;
+            touch-action: none; user-select: none;
         }
 
-       .card {
+        .card {
             width: var(--card-w); height: var(--card-h);
             border: 1px solid var(--secondary-color);
-            background: rgba(8, 20, 30, 0.6); 
+            background: var(--card-bg); /* 使用变量 */
             color: var(--secondary-color);
             display: flex; justify-content: center; align-items: center;
             font-size: 1.8rem; font-weight: bold;
             cursor: pointer; position: relative; 
             
-            transition: 
-                transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), 
-                opacity 0.1s ease-out,   /* <--- 改快 */
-                background-color 0.6s ease-out, /* <--- 改慢 */
-                border-color 0.6s ease-out,
-                color 0.6s ease-out, 
-                box-shadow 0.6s ease-out;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.1s ease-out, background-color 0.6s ease-out, border-color 0.6s ease-out, color 0.6s ease-out, box-shadow 0.6s ease-out;
             
             clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
             user-select: none; -webkit-user-select: none;
             
-            /* 默认状态 */
-            opacity: 1;
-            transform: translateY(0) scale(1);
+            opacity: 1; transform: translateY(0) scale(1);
+        }
+        
+        /* 亮色模式卡牌修正：圆角、实心 */
+        html[data-theme="light"] .card {
+            clip-path: none;
+            border-radius: 12px;
+            border: 2px solid #f0f0f0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            color: #555;
         }
 
-        /* 2. 入场前的隐身+高亮状态 (代替原本的 0% 关键帧) */
         .card.card-hidden {
-            opacity: 0;
-            transform: translateY(-60px) scale(1.1); /* 在高处 */
-            pointer-events: none; /* 隐身时不可点 */
-            
-            /* === 这里找回了丢失的颜色动画 === */
-            /* 强制设置为高亮色，移除类后会自动淡出 */
+            opacity: 0; transform: translateY(-60px) scale(1.1); pointer-events: none;
             background-color: var(--primary-color) !important;
             color: #000 !important;
             border-color: var(--primary-color) !important;
             box-shadow: 0 0 30px var(--primary-color) !important;
         }
+        /* 亮色模式隐身卡牌修正：白色文字 */
+        html[data-theme="light"] .card.card-hidden {
+            color: #fff !important;
+            box-shadow: 0 10px 30px rgba(255, 143, 171, 0.6) !important;
+        }
 
-        /* 3. Hover 样式 (找回来了) */
-        /* 注意：必须写在 .card 之后，.selected 之前 */
         .card:hover { 
-            background: rgba(0, 243, 255, 0.15); 
-            border-color: var(--primary-color); 
-            color: var(--primary-color); 
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
-            transform: translateY(-2px); /* 稍微上浮一点点，增加交互感 */
+            background: rgba(0, 243, 255, 0.15); border-color: var(--primary-color); color: var(--primary-color); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        html[data-theme="light"] .card:hover {
+            background: #fff;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
 
-        /* 4. 选中状态 (优先级最高) */
         .card.selected {
-            transform: translateY(-12px); /* 选中上浮 */
-            
+            transform: translateY(-12px);
             border-color: #fff; color: #fff;
-            background: rgba(0, 243, 255, 0.25); 
-            box-shadow: 0 0 15px var(--primary-color); 
-            z-index: 5;
+            background: rgba(0, 243, 255, 0.25); box-shadow: 0 0 15px var(--primary-color); z-index: 5;
+        }
+        html[data-theme="light"] .card.selected {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 25px rgba(255, 143, 171, 0.6);
+            transform: translateY(-10px);
         }
         
-        /* --- 终极修正：按键提示样式 --- */
+        /* 按键提示通用样式 */
         .key-hint {
-            position: absolute;
-            top: 2px;
-            left: 5px;
-            font-size: 0.6rem;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            line-height: 1;
-            z-index: 10;
-            
-            /* 核心：完全跟随父元素的文字颜色 */
-            color: currentColor; 
-            
-            /* 关键：使用不透明度来区分“提示”和“内容”，而不是改颜色 */
-            opacity: 0.5; 
-            
-            /* 确保颜色变化时有过渡，跟随按钮的 hover 动画 */
-            transition: opacity 0.2s, color 0.2s; 
-            
-            /* 防止鼠标选中文字 */
-            pointer-events: none;
+            position: absolute; top: 2px; left: 5px; font-size: 0.6rem;
+            font-family: inherit; font-weight: bold; line-height: 1; z-index: 10;
+            color: currentColor; opacity: 0.5; transition: opacity 0.2s, color 0.2s; pointer-events: none;
         }
 
-        /* 当按钮被 Hover 或处于 Active/Ready 状态时，提高不透明度，让提示更清晰 */
-        button:hover .key-hint,
-        button.active .key-hint,
-        button.ready .key-hint {
-            opacity: 0.8;
-        }
-
-        /* 专门处理：All In 按钮在隐藏状态下Enter提示的显隐逻辑 */
-        .hint-hide {
-            display: none !important; /* 使用 display none 彻底移除，防止占位或残留 */
-        }
-
-        /* 卡牌内的提示保持原样，因为卡牌颜色逻辑不同 */
-        .card .key-hint {
-            top: 4px; left: 6px;
-            color: var(--primary-color);
-            opacity: 0.8;
+        html[data-theme="light"] .key-hint {
+            top: 6px;   /* 原本是 2px */
+            left: 10px; /* 原本是 5px */
         }
         
-        /* 确保按钮相对定位 */
+        button:hover .key-hint, button.active .key-hint, button.ready .key-hint { opacity: 0.8; }
+        .hint-hide { display: none !important; }
+        .card .key-hint { top: 4px; left: 6px; color: var(--primary-color); opacity: 0.8; }
+        html[data-theme="light"] .card .key-hint { color: var(--text-color); opacity: 0.4; }
         button { position: relative !important; }
 
         /* 底部控制栏 */
@@ -270,178 +344,146 @@
             min-height: 70px; height: auto;
             display: flex; align-items: center; justify-content: flex-end;
             gap: 15px; padding: 10px 20px;
-            border-top: 1px solid rgba(0, 243, 255, 0.1);
-            background: rgba(0,0,0,0.2);
-            flex-shrink: 0;
-            flex-wrap: wrap;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(0, 243, 255, 0.1); background: rgba(0,0,0,0.2);
+            flex-shrink: 0; flex-wrap: wrap; padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            
+            border-bottom-left-radius: var(--radius-main);
+            border-bottom-right-radius: var(--radius-main);
         }
-        #msg-display {
-            margin-right: auto; color: var(--secondary-color); font-size: 0.8rem; letter-spacing: 2px;
-            width: 100%; text-align: center; margin-bottom: 5px;
+        html[data-theme="light"] .bottom-bar {
+            background: #fff; border-top: 1px solid #f0f0f0;
         }
+
+        #msg-display { margin-right: auto; color: var(--secondary-color); font-size: 0.8rem; letter-spacing: 2px; width: 100%; text-align: center; margin-bottom: 5px; }
         @media (min-width: 601px) { #msg-display { width: auto; margin-bottom: 0; text-align: left; } }
         
         #btn-exec { min-width: 100px; }
-        #btn-exec.ready {
-            background: var(--primary-color); color: #000; box-shadow: 0 0 20px var(--primary-color); animation: pulse 1.5s infinite;
-        }
+        #btn-exec.ready { background: var(--primary-color); color: #000; box-shadow: 0 0 20px var(--primary-color); animation: pulse 1.5s infinite; }
+        html[data-theme="light"] #btn-exec.ready { color: #fff; }
+        
         @keyframes pulse { 50% { opacity: 0.7; box-shadow: 0 0 5px var(--primary-color); } }
 
-        /* 新增：提示抽牌的高亮样式（复用 Pulse 动画） */
         .suggest {
-            background: var(--primary-color) !important; 
-            color: #000 !important; 
-            box-shadow: 0 0 20px var(--primary-color); 
-            animation: pulse 1.5s infinite;
-            border-color: #fff !important;
+            background: var(--primary-color) !important; color: #000 !important;
+            box-shadow: 0 0 20px var(--primary-color); animation: pulse 1.5s infinite; border-color: #fff !important;
         }
+        html[data-theme="light"] .suggest { color: #fff !important; }
 
+        /* All In 按钮：默认暗色模式 (保留赛博蓝光) */
         #btn-all {
             display: none; 
-            border-color: var(--primary-color); color: var(--primary-color);
-            background: rgba(0, 243, 255, 0.1);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            border-color: var(--primary-color); 
+            color: var(--primary-color);
+            /* 注意：这里原先写死了青色背景和阴影 */
+            background: rgba(0, 243, 255, 0.1); 
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); 
             margin-right: 5px;
         }
-        #btn-all:hover { background: var(--primary-color); color: #000; }
 
-        #btn-clear {
-            display: none; 
-            border-color: var(--alert-color); color: var(--alert-color);
-            background: rgba(255, 42, 109, 0.1);
-            margin-right: 5px;
+        /* 暗色模式 Hover */
+        #btn-all:hover { 
+            background: var(--primary-color); 
+            color: #000; 
+            box-shadow: 0 0 20px var(--primary-color);
         }
+
+        /* === 修复：亮色模式下覆盖掉蓝光 === */
+        html[data-theme="light"] #btn-all {
+            /* 1. 背景改回纯白 */
+            background: #fff !important; 
+            
+            /* 2. 阴影改回柔和的粉色 (或者是透明)，去掉原本的蓝色发光 */
+            box-shadow: 0 2px 8px rgba(255, 143, 171, 0.3) !important;
+            
+            /* 3. 边框和文字跟随主题色(粉色) */
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 亮色模式 Hover */
+        html[data-theme="light"] #btn-all:hover {
+            background: var(--primary-color) !important; 
+            color: #fff !important;
+            box-shadow: 0 5px 15px rgba(255, 143, 171, 0.6) !important;
+        }
+
+        #btn-clear { display: none; border-color: var(--alert-color); color: var(--alert-color); background: rgba(255, 42, 109, 0.1); margin-right: 5px; }
         #btn-clear:hover { background: var(--alert-color); color: #000; }
+        html[data-theme="light"] #btn-clear { background: #fff; }
+        html[data-theme="light"] #btn-clear:hover { background: var(--alert-color); color: #fff; }
 
         .footer-bar {
-            height: calc(40px + env(safe-area-inset-bottom));
-            padding-bottom: env(safe-area-inset-bottom);
-            flex-shrink: 0;
-            display: flex; justify-content: center; align-items: center;
+            height: calc(40px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+            flex-shrink: 0; display: flex; justify-content: center; align-items: center;
             border-top: 1px solid rgba(0, 243, 255, 0.05); background: rgba(0, 0, 0, 0.4);
-            color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px;
-            text-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+            color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px; text-shadow: var(--text-glow) var(--primary-color);
             animation: text-breathe 4s infinite ease-in-out;
         }
-        @keyframes text-breathe {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 0.8; text-shadow: 0 0 8px var(--primary-color); }
-        }
+        html[data-theme="light"] .footer-bar { background: transparent; border: none; animation: none; color: #aaa; }
+        @keyframes text-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; text-shadow: 0 0 8px var(--primary-color); } }
 
         #game-over, #review-ui {
             display: none; position: absolute; top:0; left:0; width:100%; height:100%;
             background: rgba(2, 4, 8, 0.98); z-index: 999;
             flex-direction: column; align-items: center; justify-content: center;
+            border-radius: var(--radius-main);
         }
-        .title-success { font-size: 3rem; color: var(--success-color); text-shadow: 0 0 20px var(--success-color); margin-bottom: 10px; text-align: center; }
-        .title-failure { font-size: 3rem; color: var(--alert-color); text-shadow: 0 0 20px var(--alert-color), 0 0 10px var(--alert-color); margin-bottom: 10px; text-align: center; }
+        html[data-theme="light"] #game-over, 
+        html[data-theme="light"] #review-ui { 
+            background: rgba(255, 255, 255, 0.95); 
+        }
+
+        .title-success { font-size: 3rem; color: var(--success-color); text-shadow: var(--text-glow) var(--success-color); margin-bottom: 10px; text-align: center; }
+        .title-failure { font-size: 3rem; color: var(--alert-color); text-shadow: var(--text-glow) var(--alert-color), 0 0 10px var(--alert-color); margin-bottom: 10px; text-align: center; }
         .end-stat { font-size: 1rem; color: var(--text-color); margin-bottom: 5px; }
 
         #review-ui { align-items: stretch; flex-direction: row; background: #000; }
         #review-list { width: 180px; border-right: 1px solid #333; overflow-y: auto; background: rgba(0, 243, 255, 0.02); }
+        html[data-theme="light"] #review-ui { background: #fff; }
+        html[data-theme="light"] #review-list { background: #f9f9f9; border-right: 1px solid #eee; }
+
         .log-entry { padding: 15px; border-bottom: 1px solid #222; font-size: 0.75rem; color: #666; cursor: pointer; text-align: right; }
-        .log-entry:hover, .log-entry.active { background: #111; color: var(--primary-color); border-right: 3px solid var(--primary-color); }
-        #review-detail { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #review-display { 
-            display: flex; 
-            gap: 15px; 
-            margin-bottom: 30px; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-        }
-
-        /* 1. 容器样式：改回默认，去掉滚动条和高度限制 */
-        #review-display { 
-            display: flex; 
-            gap: 15px; 
-            margin-bottom: 30px; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            width: 100%;
-            /* 稍微留一点 padding 防止默认状态下顶部发光被切 */
-            padding-top: 20px; 
-        }
-
-        /* 2. 迷你视图模式 (中等大小) */
-        #review-display.mini-view {
-            gap: 10px; /* 间距适中 */
-            margin-bottom: 20px;
-        }
-
-        #review-display.mini-view .card {
-            width: 50px;     /* 适中宽度 */
-            height: 75px;    /* 适中高度 */
-            font-size: 1.4rem; /* 数字依然清晰可见 */
-            border-width: 1px;
-        }
+        html[data-theme="light"] .log-entry { border-bottom: 1px solid #eee; color: #999; }
         
-        /* 上浮高度也调整到中间值 */
-        #review-display.mini-view .card.selected {
-            transform: translateY(-8px) !important; 
-        }
+        .log-entry:hover, .log-entry.active { background: #111; color: var(--primary-color); border-right: 3px solid var(--primary-color); }
+        html[data-theme="light"] .log-entry:hover, 
+        html[data-theme="light"] .log-entry.active { background: #fff; }
 
-        /* --- 左上角头像挂件 (窗口内) --- */
+        #review-detail { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        #review-display { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; width: 100%; padding-top: 20px; }
+        #review-display.mini-view { gap: 10px; margin-bottom: 20px; }
+        #review-display.mini-view .card { width: 50px; height: 75px; font-size: 1.4rem; border-width: 1px; }
+        #review-display.mini-view .card.selected { transform: translateY(-8px) !important; }
+
+        /* 头像挂件样式 (保持) */
         #profile-link {
-            position: absolute;
-            /* 调整到窗口内部左上角的合适位置 */
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px; /* 稍微缩进一点间距 */
-            text-decoration: none;
-            /* 确保在启动屏幕(z-index:100)之上 */
-            z-index: 101; 
-            transition: all 0.3s ease;
-            cursor: pointer;
-            user-select: none; -webkit-user-select: none;
+            position: absolute; top: 20px; left: 20px;
+            display: flex; align-items: center; gap: 10px; text-decoration: none;
+            z-index: 101; transition: all 0.3s ease; cursor: pointer; user-select: none;
         }
-
-        #profile-link:hover {
-            filter: brightness(1.2);
-        }
-        #profile-link:hover img {
-            box-shadow: 0 0 20px var(--primary-color);
-            transform: scale(1.05) rotate(5deg); /* 增加一点点旋转动感 */
-        }
-
+        #profile-link:hover { filter: brightness(1.2); }
+        #profile-link:hover img { box-shadow: 0 0 20px var(--primary-color); transform: scale(1.05) rotate(5deg); }
         #profile-link img {
-            width: 45px; /* 稍微缩小一点点以适应内部空间 */
-            height: 45px;
-            /* 核心修改：圆形蒙版 */
-            border-radius: 50%; 
-            border: 2px solid var(--primary-color);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
-            background: #000;
-            object-fit: cover;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); background: #000; object-fit: cover; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .profile-info { display: flex; flex-direction: column; gap: 2px; }
+        .profile-name { color: var(--text-color); font-size: 0.9rem; font-weight: bold; text-shadow: var(--text-glow) rgba(0, 243, 255, 0.5); font-family: var(--font-main); }
+        .profile-role { color: var(--secondary-color); font-size: 0.6rem; letter-spacing: 2px; font-weight: bold; }
+        @media (max-width: 600px) { #profile-link { display: none; } }
+
+        /* === 窗口抖动动画 === */
+        @keyframes shake-window {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
         }
 
-        .profile-info {
-            display: flex; 
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .profile-name {
-            color: var(--text-color);
-            font-size: 0.9rem; /* 字体稍微减小适配 */
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
-            font-family: 'Courier New', monospace;
-        }
-
-        .profile-role {
-            color: var(--secondary-color);
-            font-size: 0.6rem;
-            letter-spacing: 2px;
-            font-weight: bold;
-        }
-
-        /* 移动端适配：仅在手机窄屏(<600px)时隐藏，防止与标题重叠 */
-        @media (max-width: 600px) {
-            #profile-link { display: none; }
+        /* 激活抖动的类 */
+        .anim-shake {
+            /* 0.2秒快速抖动，覆盖原本的 transition */
+            animation: shake-window 0.2s ease-in-out;
         }
     </style>
 </head>
@@ -457,7 +499,13 @@
                     <span class="profile-role">LINK START</span>
                 </div>
             </a>
+
+            <button id="theme-btn-main" onclick="toggleTheme()" class="theme-switch">
+                点缀
+            </button>
+            
             <h1>PROJECT: 24</h1>
+            
             <div class="config-group">
                 <span class="config-title">DATASET (牌库)</span>
                 <div class="btn-group" id="opt-deck">
@@ -555,7 +603,7 @@
             <div id="end-time" class="end-stat" style="margin-bottom: 5px; font-weight: bold; color: var(--primary-color)"></div>
             <div id="end-record" class="end-stat" style="font-size: 0.8rem; color: #666; margin-bottom: 5px; letter-spacing: 1px;"></div>
         
-            <div id="end-config" class="end-stat" style="font-size: 0.7rem; color: #555; margin-bottom: 5px; font-family: monospace; text-transform: uppercase;"></div>
+            <div id="end-config" class="end-stat" style="font-size: 0.7rem; color: #555; margin-bottom: 5px; font-family: var(--font-main); text-transform: uppercase;"></div>
             <div id="end-clears" class="end-stat" style="font-size: 0.85rem; color: var(--secondary-color); margin-bottom: 30px; letter-spacing: 1px; font-weight:bold;"></div>
             <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">    <button onclick="openReview()">REVIEW</button>
                 <button onclick="startGame()">RETRY</button>
@@ -1206,8 +1254,25 @@
         function fail(reason) {
             state.chances--;
             updateStats();
-            $('main-window').style.transform = "translateX(5px)";
-            setTimeout(()=>$('main-window').style.transform="none", 50);
+            
+            // === 修改重点：使用 CSS Class 触发抖动 ===
+            const win = $('main-window');
+            
+            // 1. 移除可能存在的类（防止连续失败时动画不触发）
+            win.classList.remove('anim-shake');
+            
+            // 2. 强制浏览器重绘 (Reflow)，这是让动画能立刻再次触发的关键魔法
+            void win.offsetWidth; 
+            
+            // 3. 添加类，开始抖动
+            win.classList.add('anim-shake');
+            
+            // 4. 动画结束后清理（虽然不清理也行，但保持整洁）
+            setTimeout(() => {
+                win.classList.remove('anim-shake');
+            }, 210); // 略大于动画时间的 0.2s
+            // =======================================
+
             if(state.chances < 0) gameOver(reason, false);
         }
 
@@ -1723,6 +1788,53 @@
                 btn.blur(); // 强制移除焦点
             }
         }, true);
+
+        // === 主题控制系统 ===
+        
+        // 初始化
+        function initTheme() {
+            // 读取保存的主题，没有则默认为 'dark'
+            const savedTheme = localStorage.getItem('p24_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeBtnText(savedTheme);
+        }
+
+        // 切换逻辑
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            // 如果是 dark，切到 light；反之亦然
+            const next = current === 'dark' ? 'light' : 'dark';
+            
+            // 1. 设置属性 -> CSS 自动变身
+            document.documentElement.setAttribute('data-theme', next);
+            
+            // 2. 保存到本地存储
+            localStorage.setItem('p24_theme', next);
+            
+            // 3. 更新按钮文字
+            updateThemeBtnText(next);
+        }
+
+        // 更新按钮文字
+        function updateThemeBtnText(theme) {
+            // 获取两个按钮（启动页的大按钮，游戏内的小按钮）
+            const btnMain = document.getElementById('theme-btn-main');
+            const btnMini = document.getElementById('theme-btn-mini');
+            
+            // 逻辑：当前是 dark -> 显示 "点缀" (代表默认)
+            //       当前是 light -> 显示 "星空" (代表新主题)
+            //       或者你想反过来：按钮显示的是“点击后会变成的样子”？
+            //       按你的描述："切换的地方是一个显示'点缀'的按钮，点击...会显示'星空'"
+            //       这意味着：Dark模式下按钮字是"点缀"，Light模式下按钮字是"星空"。
+            
+            const text = theme === 'dark' ? '点缀' : '星空';
+            
+            if(btnMain) btnMain.innerText = text;
+            if(btnMini) btnMini.innerText = text;
+        }
+
+        // 立即运行初始化
+        initTheme();
     </script>
 </body>
 </html>
