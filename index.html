@@ -778,7 +778,6 @@
         // 新增函数：专门处理单轮重置逻辑
         function startRound() {
             // 1. 清理
-            clearAnimTimers();
             state.hand = [];
             state.selection = [];
             $('card-container').innerHTML = '';
@@ -903,9 +902,6 @@
 
         function drawCards(n) {
             if(state.hand.length >= 10) return;
-            
-            // 防止玩家疯狂点 Q 导致上一次的动画队列还在跑
-            clearAnimTimers();
 
             $('btn-draw').classList.remove('suggest');
             setStatus("READY", "var(--secondary-color)");
@@ -1013,12 +1009,6 @@
             }
         }
 
-        // 清理所有正在排队的入场动画
-        function clearAnimTimers() {
-            state.animTimers.forEach(id => clearTimeout(id));
-            state.animTimers = [];
-        }
-
         // 强行触发布局重绘 (Reflow)
         // 这是让浏览器意识到“元素刚刚是隐藏的，现在要显示了”的关键，否则浏览器会合并操作导致没有动画
         function forceReflow() {
@@ -1074,55 +1064,72 @@
         }
 
         function render() {
-            // 1. 先清理上一次渲染可能残留的定时器，防止快速操作冲突
-            // 注意：这里只清理 render 内部产生的 stagger 定时器，
-            // 实际上我们在 drawCards 开头也会清理，双重保险
-            
             const container = $('card-container');
-            container.innerHTML = '';
             
-            state.hand.forEach((c, index) => {
-                let div = document.createElement('div');
-                
-                // 设置内容
-                let keyLabel = (index + 1) % 10; 
-                if (keyLabel === 0) keyLabel = 0; 
-                div.innerHTML = `<span class="key-hint">${keyLabel}</span>${c.val}`;
-                
-                div.dataset.id = c.id; 
-                div.onclick = () => toggleSelect(c.id);
-                
-                let cls = 'card';
-                // 如果被选中，直接加 selected 类
-                if (state.selection.includes(c.id)) cls += ' selected';
-                
-                // 如果是新牌，先加上“隐身”类
-                if (c.isNew) {
-                    cls += ' card-hidden';
-                }
-                
-                div.className = cls;
-                container.appendChild(div);
-                
-                // === 动画触发逻辑 ===
-                if (c.isNew) {
-                    // 只有新牌需要处理入场
-                    // 我们利用 stagger (交错) 时间来逐个移除 card-hidden
-                    
-                    // 计算延迟：第一张立即开始，后面每张间隔 50ms
-                    // 这里的 index 是手牌绝对索引，为了视觉效果更好，应该基于“新牌的数量”来计算，
-                    // 但简单起见，直接用 index * 40 也可以，或者维护一个 newCardCounter
-                    let delay = index * 40; 
-                    
-                    let timerId = setTimeout(() => {
-                        // 移除隐身类 -> 触发 CSS transition -> 平滑飞入
-                        div.classList.remove('card-hidden');
-                    }, delay);
-                    
-                    state.animTimers.push(timerId);
-                }
+            // 1. 建立现有 DOM 的映射 (用于复用)
+            // Map<id, HTMLDivElement>
+            const existingNodes = new Map();
+            Array.from(container.children).forEach(el => {
+                if(el.dataset.id) existingNodes.set(parseFloat(el.dataset.id), el);
             });
-            
+
+            // 2. 遍历当前手牌数据，更新或创建 DOM
+            state.hand.forEach((c, index) => {
+                let div = existingNodes.get(c.id);
+
+                // --- 情况 A: 新卡牌 (创建) ---
+                if (!div) {
+                    div = document.createElement('div');
+                    div.dataset.id = c.id;
+                    div.onclick = () => toggleSelect(c.id);
+                    div.className = 'card';
+                    
+                    // 只有新生成的牌才加隐身状态
+                    // 注意：这里我们不再依赖外部定时器清理，而是利用 transition
+                    if (c.isNew) {
+                        div.classList.add('card-hidden');
+                        
+                        // 强制浏览器计算布局 (Reflow)，确保 transition 生效
+                        // 否则浏览器可能会把“添加类”和“移除类”合并，导致没动画
+                        void div.offsetWidth; 
+                        
+                        // 延迟一小会儿移除隐身，触发飞入
+                        // 根据索引给一点点延迟，让多张牌有先后顺序
+                        setTimeout(() => {
+                            div.classList.remove('card-hidden');
+                        }, index * 50); 
+                    }
+                }
+
+                // --- 情况 B: 所有卡牌 (更新内容 & 顺序) ---
+                
+                // 1. 更新按键提示和数值
+                let keyLabel = (index + 1) % 10; 
+                if (keyLabel === 0) keyLabel = 0;
+                // 使用 innerHTML 更新，比销毁重建开销极小
+                div.innerHTML = `<span class="key-hint">${keyLabel}</span>${c.val}`;
+
+                // 2. 物理排序：appendChild 会把已存在的元素移动到末尾
+                // 这样 DOM 的顺序就永远和 state.hand 保持一致了
+                container.appendChild(div);
+
+                // 3. 更新选中状态 (只在变动时操作 class，减少重绘)
+                const isSelected = state.selection.includes(c.id);
+                if (isSelected && !div.classList.contains('selected')) {
+                    div.classList.remove('card-hidden'); // 选中时确保可见
+                    div.classList.add('selected');
+                } else if (!isSelected && div.classList.contains('selected')) {
+                    div.classList.remove('selected');
+                }
+
+                // 从 Map 中移除，剩下的就是多余需要删除的牌
+                existingNodes.delete(c.id);
+            });
+
+            // 3. 清理多余的 DOM (比如被打出的牌)
+            existingNodes.forEach(el => el.remove());
+
+            // 4. 更新其他 UI
             $('deck-val').innerText = state.deck.length;
             updateDrawBtn();
             updateButtonStates();
