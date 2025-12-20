@@ -1287,7 +1287,7 @@
                 state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
             
                 // 2. 触发失败 (内部会调用 gameOver)
-                fail("INVALID / NO SOLUTION"); 
+                fail("NO SOLUTION"); 
 
                 // 3. 如果没死（active还是true），才进行界面重置
                 if (state.active) {
@@ -1593,7 +1593,7 @@
                             solDisplay.innerText = h.sol;
                             solDisplay.style.color = "var(--primary-color)";
                         } else {
-                            solDisplay.innerText = "NO SOLUTION / INVALID";
+                            solDisplay.innerText = "NO SOLUTION";
                             solDisplay.style.color = "var(--alert-color)";
                         }
                     }
