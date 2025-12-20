@@ -1501,7 +1501,7 @@
             const isStandardWin = (cfg.rounds !== -1 && win);
             const isInfiniteClear = (cfg.rounds === -1 && survivalScore > 0);
             
-            const isValidClear = (isStandardWin || isInfiniteClear) && !isMiracle;
+            const isValidClear = (isStandardWin || isInfiniteClear) && !isMiracle && !state.hintUsed;
 
             // 4. 如果有效，计数+1 并保存
             if (isValidClear) {
