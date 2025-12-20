@@ -1091,11 +1091,8 @@
                         div.classList.add('card-hidden');
                         void div.offsetWidth; // 强制重绘
                         
-                        // === 修改重点：基于“第几张新牌”计算延迟 ===
-                        // 如果只抽一张，counter是0，delay就是0，瞬间显示
-                        // 如果抽十张，delay 依次是 0, 50, 100... 形成波浪
-                        let delay = newCardCounter * 50;
-                        newCardCounter++; // 计数器+1
+                        let delay = 16 + newCardCounter * 40;
+                        newCardCounter++; 
                         
                         setTimeout(() => {
                             div.classList.remove('card-hidden');
@@ -1105,7 +1102,6 @@
 
                 // --- 更新内容 ---
                 let keyLabel = (index + 1) % 10; 
-                if (keyLabel === 0) keyLabel = 0; 
                 div.innerHTML = `<span class="key-hint">${keyLabel}</span>${c.val}`;
 
                 container.appendChild(div);
