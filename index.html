@@ -1487,30 +1487,35 @@
 
             $('end-config').innerText = configStr;
 
-            // === 2. 处理通关次数 (Clear Count) ===
-            const clearKey = 'p24_total_clears';
-            let clearCount = parseInt(localStorage.getItem(clearKey) || '0');
-
-            // === 修改重点：重新定义“通关” ===
-            // 判定条件：
-            // 1. 普通模式：必须是 Win (win === true)
-            // 2. 无限模式：只要生存分数 > 0 (survivalScore > 0)，即至少过了一关
-            // 3. 通用排除：奇迹结局 (isMiracle) 不算通关
+            // === 2. 处理通关次数 (Mode Specific Clear Count) ===
             
+            // 1. 构建当前模式的唯一键名 (与最佳纪录的键名逻辑保持一致)
+            // 格式: p24_clears_standard_breathing_challenge_10
+            const modeKeyRaw = `${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
+            const clearKey = `p24_clears_${modeKeyRaw}`;
+            
+            // 2. 读取当前模式的通关数
+            let modeClears = parseInt(localStorage.getItem(clearKey) || '0');
+
+            // 3. 判定是否为有效通关 (逻辑保持不变)
+            // - 普通模式: 赢了 (win)
+            // - 无限模式: 只要没死在第1关 (survivalScore > 0)
+            // - 排除: 奇迹结局 (isMiracle) 不计入
             const isStandardWin = (cfg.rounds !== -1 && win);
             const isInfiniteClear = (cfg.rounds === -1 && survivalScore > 0);
             
-            // 是否算作“有效通关”
             const isValidClear = (isStandardWin || isInfiniteClear) && !isMiracle;
 
+            // 4. 如果有效，计数+1 并保存
             if (isValidClear) {
-                clearCount++;
-                localStorage.setItem(clearKey, clearCount);
+                modeClears++;
+                localStorage.setItem(clearKey, modeClears);
             }
 
-            // 显示文本
+            // 5. 显示文本
             const clearsEl = $('end-clears');
-            clearsEl.innerText = `TOTAL CLEARS: ${clearCount}`;
+            // 修改文案为 "MODE CLEARS" 以体现这是当前模式的数据
+            clearsEl.innerText = `MODE CLEARS: ${modeClears}`;
             
             // 样式处理：如果是有效通关，显示高亮绿色
             if (isValidClear) {
