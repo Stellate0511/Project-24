@@ -857,6 +857,7 @@
             lastTick: 0,
             lastRender: 0,
             animTimers: [],
+            barEl: null,
             lang: localStorage.getItem('p24_lang') || 'zh' // 默认语言
         };
 
@@ -960,6 +961,8 @@
             $('game-over').style.display = 'none';
             $('review-ui').style.display = 'none';
             $('game-ui').style.display = 'flex';
+
+            state.barEl = $('timer-bar');
 
             state.active = true;
             state.totalTime = 0; 
