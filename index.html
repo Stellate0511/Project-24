@@ -191,21 +191,21 @@
             background: var(--primary-color); color: #fff; box-shadow: 0 5px 20px rgba(255,143,171,0.4);
         }
 
-        /* --- 主题切换按钮 (仅控制位置) --- */
-        .theme-switch {
-            /* 1. 绝对定位到右上角 */
-            position: absolute !important; /* 加重要级防止被flex布局干扰 */
+        /* --- 右上角控制区 --- */
+        .top-controls {
+            position: absolute !important;
             top: 20px;
             right: 20px;
             z-index: 102;
-            
-            /* 2. 重置外边距，防止位置偏移 */
+            display: flex;
+            gap: 10px;
+        }
+
+        .top-btn {
+            padding: 8px 12px; 
+            min-width: auto;
             margin: 0 !important;
-            
-            /* 3. 尺寸微调 (可选) */
-            /* 如果觉得普通按钮太大，可以稍微改小 padding，否则就删掉下面这就行 */
-            padding: 8px 15px; 
-            min-width: auto; /*不仅限于80px*/
+            font-size: 0.75rem;
         }
 
         /* --- 游戏主界面 --- */
@@ -544,50 +544,56 @@
             <a id="profile-link" href="/">
                 <img src="/avatar.jpg" alt="Avatar">
                 <div class="profile-info">
-                    <span class="profile-name">回到主页</span>
-                    <span class="profile-role">LINK START</span>
+                    <span class="profile-name" data-i18n="profile_back">回到主页</span>
+                    <span class="profile-role" data-i18n="profile_role">连接启动</span>
                 </div>
             </a>
 
-            <button id="theme-btn-main" onclick="toggleTheme()" class="theme-switch">
-                点缀
-            </button>
+            <!-- 右上角控制区 -->
+            <div class="top-controls">
+                <button id="lang-btn" onclick="toggleLanguage()" class="top-btn" data-i18n="lang_btn">
+                    English
+                </button>
+                <button id="theme-btn-main" onclick="toggleTheme()" class="top-btn" data-i18n="theme_btn">
+                    点缀
+                </button>
+            </div>
             
-            <h1>PROJECT: 24</h1>
+            <h1 data-i18n="title">PROJECT: 24</h1>
             
             <div class="config-group">
-                <span class="config-title">DATASET (牌库)</span>
+                <span class="config-title" data-i18n="lbl_dataset">DATASET</span>
                 <div class="btn-group" id="opt-deck">
-                    <button data-val="simple">简单</button>
-                    <button data-val="classic">经典</button>
-                    <button class="active" data-val="standard">标准</button>
+                    <button data-val="simple" data-i18n="btn_simple">简单</button>
+                    <button data-val="classic" data-i18n="btn_classic">经典</button>
+                    <button class="active" data-val="standard" data-i18n="btn_standard">标准</button>
                 </div>
             </div>
             <div class="config-group">
-                <span class="config-title">TIMER (计时)</span>
+                <span class="config-title" data-i18n="lbl_timer">TIMER</span>
                 <div class="btn-group" id="opt-time">
-                    <button class="active" data-val="endless">无尽</button>
-                    <button data-val="hourglass">沙漏</button>
-                    <button data-val="breathing">呼吸</button>
+                    <button class="active" data-val="endless" data-i18n="btn_endless">无尽</button>
+                    <button data-val="hourglass" data-i18n="btn_hourglass">沙漏</button>
+                    <button data-val="breathing" data-i18n="btn_breathing">呼吸</button>
                 </div>
             </div>
             <div class="config-group">
-                <span class="config-title">TOLERANCE (机会)</span>
+                <span class="config-title" data-i18n="lbl_tolerance">TOLERANCE</span>
                 <div class="btn-group" id="opt-life">
-                    <button data-val="casual">休闲 (3)</button>
-                    <button class="active" data-val="challenge">挑战 (1)</button>
-                    <button data-val="extreme">极限 (0)</button>
+                    <button data-val="casual" data-i18n="btn_casual">休闲 (3)</button>
+                    <button class="active" data-val="challenge" data-i18n="btn_challenge">挑战 (1)</button>
+                    <button data-val="extreme" data-i18n="btn_extreme">极限 (0)</button>
                 </div>
             </div>
             <div class="config-group">
-                <span class="config-title">LENGTH (赛程)</span>
+                <span class="config-title" data-i18n="lbl_length">LENGTH</span>
                 <div class="btn-group" id="opt-rounds">
-                    <button class="active" data-val="1">基础 (1)</button>
-                    <button data-val="10">耐久 (10)</button>
-                    <button data-val="-1">无限 (∞)</button>
+                    <button class="active" data-val="1" data-i18n="btn_base">基础 (1)</button>
+                    <button data-val="10" data-i18n="btn_endurance">耐久 (10)</button>
+                    <button data-val="-1" data-i18n="btn_infinite">无限 (∞)</button>
                 </div>
             </div>
-            <button id="start-btn">INITIATE</button>
+            <button id="start-btn" data-i18n="btn_start">INITIATE</button>
         </div>
 
         <!-- 游戏界面 -->
@@ -595,26 +601,26 @@
             <div class="top-bar">
                 <div class="stat-group">
                     <div class="stat-item" id="round-display" style="display:none">
-                        <span class="stat-label">RND:</span>
+                        <span class="stat-label" data-i18n="stat_rnd">RND:</span>
                         <span class="stat-val" id="round-val">1/1</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">DECK:</span>
+                        <span class="stat-label" data-i18n="stat_deck">DECK:</span>
                         <span class="stat-val" id="deck-val">--</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">TIME:</span>
+                        <span class="stat-label" data-i18n="stat_time">TIME:</span>
                         <span class="stat-val" id="time-val">00:00</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">CHANCES:</span>
+                        <span class="stat-label" data-i18n="stat_chances">CHANCES:</span>
                         <span class="stat-val" id="chance-val" style="color:var(--alert-color)">--</span>
                     </div>
                 </div>
                 <div class="menu-btns">
-                    <button onclick="getHint()">HINT</button>
-                    <button onclick="startGame()">RESTART</button>
-                    <button onclick="backToMenu()">MENU</button>
+                    <button onclick="getHint()" data-i18n="btn_hint">HINT</button>
+                    <button onclick="startGame()" data-i18n="btn_restart">RESTART</button>
+                    <button onclick="backToMenu()" data-i18n="btn_menu">MENU</button>
                 </div>
             </div>
             <div class="progress-area">
@@ -622,41 +628,42 @@
             </div>
             <div id="card-container"></div>
             <div class="bottom-bar">
-                <div id="msg-display">SYSTEM READY</div>
+                <div id="msg-display" data-i18n="msg_ready">SYSTEM READY</div>
                 <button id="btn-clear" onclick="clearSelection()">
-                    <span class="key-hint">ESC</span>CLEAR
+                    <span class="key-hint">ESC</span><span data-i18n="btn_clear">CLEAR</span>
                 </button>
                 
                 <button id="btn-all" onclick="selectAllAndExec()">
-                    <span class="key-hint">↵</span>ALL IN
+                    <span class="key-hint">↵</span><span data-i18n="btn_all">ALL IN</span>
                 </button>
                 
                 <button id="btn-draw">
-                    <span class="key-hint">Q</span>DRAW
+                    <span class="key-hint">Q</span><span data-i18n="btn_draw">DRAW</span>
                 </button>
                 
                 <button id="btn-exec" disabled>
-                    <span class="key-hint">↵</span>EXECUTE
+                    <span class="key-hint">↵</span><span data-i18n="btn_exec">EXECUTE</span>
                 </button>
             </div>
         </div>
 
-        <div class="footer-bar">
+        <div class="footer-bar" data-i18n="footer">
             BUILD: 2025 // CREATOR: 点缀星空
         </div>
 
         <!-- 结算界面 -->
         <div id="game-over">
-            <div id="end-title" class="title-failure">FAILURE</div>
-            <div id="end-msg" style="margin-bottom:20px; letter-spacing:1px; color:#888">SIGNAL LOST</div>
+            <div id="end-title" class="title-failure" data-i18n="fail_title">FAILURE</div>
+            <div id="end-msg" style="margin-bottom:20px; letter-spacing:1px; color:#888" data-i18n="msg_signal_lost">SIGNAL LOST</div>
             <div id="end-time" class="end-stat" style="margin-bottom: 5px; font-weight: bold; color: var(--primary-color)"></div>
             <div id="end-record" class="end-stat" style="font-size: 0.8rem; color: #666; margin-bottom: 5px; letter-spacing: 1px;"></div>
         
             <div id="end-config" class="end-stat" style="font-size: 0.7rem; color: #555; margin-bottom: 5px; font-family: var(--font-main); text-transform: uppercase;"></div>
             <div id="end-clears" class="end-stat" style="font-size: 0.85rem; color: var(--secondary-color); margin-bottom: 30px; letter-spacing: 1px; font-weight:bold;"></div>
-            <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">    <button onclick="openReview()">REVIEW</button>
-                <button onclick="startGame()">RETRY</button>
-                <button onclick="backToMenu()">MENU</button>
+            <div style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;">    
+                <button onclick="openReview()" data-i18n="btn_review">REVIEW</button>
+                <button onclick="startGame()" data-i18n="btn_retry">RETRY</button>
+                <button onclick="backToMenu()" data-i18n="btn_menu">MENU</button>
             </div>
         </div>
 
@@ -665,34 +672,217 @@
             <div id="review-list"></div>
             <div id="review-detail">
                 <div id="review-display"></div>
-                <div id="lbl-sol" style="color:#555; font-size:0.7rem; margin-bottom:15px;">SOLUTION DATA</div>
+                <div id="lbl-sol" style="color:#555; font-size:0.7rem; margin-bottom:15px;" data-i18n="lbl_sol_data">SOLUTION DATA</div>
                 <div id="review-sol" style="font-size:1.1rem; color:var(--primary-color)">[DATA PENDING]</div>
-                <button onclick="$('review-ui').style.display='none'" style="margin-top:30px; border-color:var(--alert-color)">CLOSE</button>
+                <button onclick="$('review-ui').style.display='none'" style="margin-top:30px; border-color:var(--alert-color)" data-i18n="btn_close">CLOSE</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 修改 cfg，增加 rounds 默认值
+        // === I18N 字典 ===
+        const i18n = {
+            zh: {
+                title: "PROJECT: 24",
+                profile_back: "回到主页",
+                profile_role: "连接启动",
+                lbl_dataset: "牌库设定",
+                lbl_timer: "计时模式",
+                lbl_tolerance: "容错机会",
+                lbl_length: "赛程长度",
+                btn_simple: "简单",
+                btn_classic: "经典",
+                btn_standard: "标准",
+                btn_endless: "无尽",
+                btn_hourglass: "沙漏",
+                btn_breathing: "呼吸",
+                btn_casual: "休闲 (3)",
+                btn_challenge: "挑战 (1)",
+                btn_extreme: "极限 (0)",
+                btn_base: "基础 (1)",
+                btn_endurance: "耐久 (10)",
+                btn_infinite: "无限 (∞)",
+                btn_start: "启动系统",
+                stat_rnd: "轮次:",
+                stat_deck: "剩余:",
+                stat_time: "时间:",
+                stat_chances: "机会:",
+                btn_hint: "提示",
+                btn_restart: "重开",
+                btn_menu: "菜单",
+                msg_ready: "系统就绪",
+                btn_clear: "清除",
+                btn_all: "一键打完",
+                btn_draw: "抽牌",
+                btn_max: "已满",
+                btn_empty: "耗尽",
+                btn_exec: "执行",
+                btn_select: "选择 (2-4)",
+                btn_full: "已满",
+                footer: "版本: 2025 // 作者: 点缀星空",
+                fail_title: "行动失败",
+                success_title: "行动成功",
+                run_ended_title: "行动结束",
+                legendary_title: "传说",
+                msg_signal_lost: "信号丢失",
+                msg_time_exhausted: "时间耗尽",
+                msg_timeout: "超时",
+                msg_dead_end: "死局",
+                msg_no_solution: "无解",
+                msg_calc_valid: "计算有效",
+                msg_next_phase: "进入下一阶段...",
+                msg_wave_cleared: "波次完成...",
+                msg_mission_complete: "任务完成",
+                msg_db_not_ready: "数据未就绪",
+                msg_loading: "数据加载中...",
+                msg_db_fail: "数据加载失败",
+                msg_no_moves: "无路可走 - 请抽牌",
+                msg_deadlock: "死锁 / 数据库延迟",
+                msg_legendary_sub: "发现绝世手牌",
+                btn_review: "复盘",
+                btn_retry: "重试",
+                btn_close: "关闭",
+                lbl_sol_data: "解法数据",
+                lbl_no_records: "暂无记录",
+                lbl_remaining: "剩余手牌",
+                lbl_no_solution: "无解",
+                rec_new: "新纪录已更新",
+                rec_best: "最佳纪录:",
+                rec_none: "暂无纪录",
+                rec_invalid: "纪录无效 (使用提示)",
+                rec_unaffected: "纪录不受影响",
+                rec_time_prefix: "总用时: ",
+                rec_round_prefix: "完成轮次: ",
+                mode_clears: "通关次数:",
+                theme_dark: "点缀",
+                theme_light: "星空",
+                lang_btn: "English"
+            },
+            en: {
+                title: "PROJECT: 24",
+                profile_back: "RETURN HOME",
+                profile_role: "LINK START",
+                lbl_dataset: "DATASET",
+                lbl_timer: "TIMER",
+                lbl_tolerance: "TOLERANCE",
+                lbl_length: "LENGTH",
+                btn_simple: "SIMPLE",
+                btn_classic: "CLASSIC",
+                btn_standard: "STANDARD",
+                btn_endless: "ENDLESS",
+                btn_hourglass: "HOURGLASS",
+                btn_breathing: "BREATHING",
+                btn_casual: "CASUAL (3)",
+                btn_challenge": "CHALLENGE (1)",
+                btn_extreme: "EXTREME (0)",
+                btn_base: "BASE (1)",
+                btn_endurance: "ENDURANCE (10)",
+                btn_infinite: "INFINITE (∞)",
+                btn_start: "INITIATE",
+                stat_rnd: "RND:",
+                stat_deck: "DECK:",
+                stat_time: "TIME:",
+                stat_chances: "CHANCES:",
+                btn_hint: "HINT",
+                btn_restart: "RESTART",
+                btn_menu: "MENU",
+                msg_ready: "SYSTEM READY",
+                btn_clear: "CLEAR",
+                btn_all: "PLAY ALL",
+                btn_draw: "DRAW",
+                btn_max: "MAX",
+                btn_empty": "EMPTY",
+                btn_exec: "EXECUTE",
+                btn_select: "SELECT (2-4)",
+                btn_full: "FULL",
+                footer: "BUILD: 2025 // CREATOR: 点缀星空 (Stellate)",
+                fail_title: "FAILURE",
+                success_title: "SUCCESS",
+                run_ended_title: "RUN ENDED",
+                legendary_title: "LEGENDARY",
+                msg_signal_lost: "SIGNAL LOST",
+                msg_time_exhausted: "TIME EXHAUSTED",
+                msg_timeout: "TIMEOUT",
+                msg_dead_end: "DEAD END / STAGNATION",
+                msg_no_solution: "NO SOLUTION",
+                msg_calc_valid: "CALCULATION VALID",
+                msg_next_phase: "NEXT PHASE...",
+                msg_wave_cleared: "WAVE CLEARED...",
+                msg_mission_complete: "MISSION COMPLETE",
+                msg_db_not_ready: "DB NOT READY",
+                msg_loading: "LOADING DATA...",
+                msg_db_fail: "DB LOAD FAIL",
+                msg_no_moves: "NO MOVES - DRAW CARD",
+                msg_deadlock: "DEADLOCK / DB LAG",
+                msg_legendary_sub: "IMPOSSIBLE HAND DISCOVERED",
+                btn_review: "REVIEW",
+                btn_retry: "RETRY",
+                btn_close: "CLOSE",
+                lbl_sol_data: "SOLUTION DATA",
+                lbl_no_records: "NO RECORDS",
+                lbl_remaining: "REMAINING",
+                lbl_no_solution: "NO SOLUTION",
+                rec_new: "NEW RECORD UPDATED",
+                rec_best: "BEST RECORD:",
+                rec_none: "NO RECORD",
+                rec_invalid: "RECORD INVALID (ASSISTED)",
+                rec_unaffected: "RECORD UNAFFECTED",
+                rec_time_prefix: "TOTAL TIME: ",
+                rec_round_prefix: "ROUNDS CLEARED: ",
+                mode_clears: "MODE CLEARS:",
+                theme_dark: "CYBER",
+                theme_light: "CUTE",
+                lang_btn: "中文"
+            }
+        };
+
+        // --- 核心状态 ---
         const cfg = { deck:'standard', time:'endless', life:'challenge', rounds: 1 };
-        
-        // 修改 state，增加 round 计数器
         const state = {
             deck: [], hand: [], selection: [], history: [],
             chances: 0, timer: 0, interval: null, breath: 10.0,
             active: false, totalTime: 0,
-            // 新增状态
             currentRound: 1, maxRounds: 1,
             hintUsed: false,
             lastTick: 0,
             lastRender: 0,
-            animTimers: []
+            animTimers: [],
+            lang: localStorage.getItem('p24_lang') || 'zh' // 默认语言
         };
 
         const solutionDB = new Map();
         let isDbReady = false;
         const $ = (id) => document.getElementById(id);
         
+        // --- 语言设置函数 ---
+        function setLang(lang) {
+            state.lang = lang;
+            localStorage.setItem('p24_lang', lang);
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+            // 1. 静态文本替换
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) {
+                    el.innerText = i18n[lang][key];
+                }
+            });
+
+            // 2. 动态更新按钮状态 (EXECUTE, DRAW等)
+            updateButtonStates();
+            updateDrawBtn();
+            
+            // 3. 更新主题按钮文本 (因为它既受主题影响也受语言影响)
+            updateThemeBtnText();
+        }
+
+        function toggleLanguage() {
+            setLang(state.lang === 'zh' ? 'en' : 'zh');
+        }
+        
+        // Helper: 获取翻译
+        const t = (key) => i18n[state.lang][key] || key;
+
         // Setup
         document.querySelectorAll('.btn-group button').forEach(b => {
             b.onclick = (e) => {
@@ -728,15 +918,31 @@
         function fmtTimePrecise(s) {
             let m = Math.floor(s / 60);
             let sec = Math.floor(s % 60);
-            // 提取毫秒 (3位)
             let ms = Math.floor((s % 1) * 1000); 
             return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}.${ms.toString().padStart(3,'0')}`;
         }
 
-        function setStatus(msg, color) {
+        // 修改：setStatus 现在接收 key
+        function setStatus(key, color) {
             const el = $('msg-display');
-            el.innerText = msg;
+            // 尝试翻译，如果 key 没在字典里，就直接显示 key
+            el.innerText = t(key);
             el.style.color = color;
+            // 记录当前状态 key 以便切换语言时刷新？
+            // 简单起见，这里假设每次 setStatus 都是即时操作。
+            // 如果要完美支持语言切换时的状态保留，需要保存 currentStatusKey。
+            el.setAttribute('data-current-key', key);
+        }
+        
+        // 修正：监听语言切换刷新状态栏
+        const originalSetLang = setLang;
+        setLang = function(lang) {
+            originalSetLang(lang);
+            const msgEl = $('msg-display');
+            const currentKey = msgEl.getAttribute('data-current-key');
+            if (currentKey) {
+                 msgEl.innerText = t(currentKey);
+            }
         }
 
         function startGame() {
@@ -745,21 +951,19 @@
             $('review-ui').style.display = 'none';
             $('game-ui').style.display = 'flex';
 
-            // 重置全局游戏状态
             state.active = true;
             state.totalTime = 0; 
             state.history = [];
             state.hintUsed = false;
             state.lastTick = Date.now();
             
-            // 设置赛程
             state.maxRounds = cfg.rounds;
             state.currentRound = 1;
 
             if (state.maxRounds > 1) {
-                $('round-display').style.display = 'flex'; // 多局模式：显示
+                $('round-display').style.display = 'flex';
             } else {
-                $('round-display').style.display = 'none'; // 基础模式：隐藏
+                $('round-display').style.display = 'none';
             }
 
             if(cfg.life === 'casual') state.chances = 3;
@@ -767,37 +971,27 @@
             else state.chances = 0; // Extreme
             updateStats();
             
-            // 启动时钟
             clearInterval(state.interval);
             state.interval = setInterval(tick, 16);
 
-            // 进入第一轮
             startRound();
         }
 
-        // 新增函数：专门处理单轮重置逻辑
         function startRound() {
-            // 1. 清理
             state.hand = [];
             state.selection = [];
             $('card-container').innerHTML = '';
 
-            // 2. 更新上方局数显示 (如果有)
             if (cfg.rounds === -1) {
-                // 无限模式：只显示当前局数
                 $('round-val').innerText = state.currentRound;
-                // 确保 RND 栏显示
                 $('round-display').style.display = 'flex';
             } else if (state.maxRounds > 1) {
-                // 普通多局模式：显示 进度
                 $('round-val').innerText = `${state.currentRound}/${state.maxRounds}`;
                 $('round-display').style.display = 'flex';
             } else {
-                // 基础模式：隐藏
                 $('round-display').style.display = 'none';
             }
 
-            // 3. 进度条视觉重置
             const timerBar = $('timer-bar');
             const progressArea = document.querySelector('.progress-area');
             timerBar.style.backgroundColor = 'var(--primary-color)';
@@ -809,7 +1003,6 @@
                 timerBar.style.width = '100%'; 
             }
 
-            // 4. 生成新牌库 (保持原样)
             let pool = [];
             if (cfg.deck === 'simple') {
                 const highProb = [3, 4, 6, 12]; 
@@ -832,21 +1025,13 @@
             
             $('deck-val').innerText = state.deck.length; 
 
-            // 5. 重置机会
-            // if(cfg.life === 'casual') state.chances = 3;
-            // else if(cfg.life === 'challenge') state.chances = 1;
-            // else state.chances = 0;
-            // updateStats();
-
-            // 6. 重置单局计时
             if(cfg.time === 'hourglass') state.timer = 60.0;
             else if(cfg.time === 'breathing') state.breath = 10.0;
             else state.timer = 0; 
 
-            // 7. 发牌
             drawCards(10);
             
-            setStatus("SYSTEM READY", "var(--secondary-color)");
+            setStatus("msg_ready", "var(--secondary-color)");
             state.active = true;
         }
 
@@ -856,28 +1041,24 @@
                 return;
             }
 
-            // --- 1. 高频逻辑计算 (保持 16ms 一次，保证时间精准) ---
             let now = Date.now();
             let dt = (now - state.lastTick) / 1000;
             state.lastTick = now;
             state.totalTime += dt;
 
-            // 计算时间数值
             if(cfg.time === 'endless') {
                 state.timer += dt;
             } else if(cfg.time === 'hourglass') {
                 state.timer -= dt;
-                if(state.timer <= 0) { gameOver("TIME EXHAUSTED", false); return; }
+                if(state.timer <= 0) { gameOver("msg_time_exhausted", false); return; }
             } else if(cfg.time === 'breathing') {
                 state.breath -= dt;
                 if(state.breath <= 0) {
-                    fail("TIMEOUT");
+                    fail("msg_timeout");
                     state.breath = 10.0;
                 }
             }
 
-            // --- 2. 低频 UI 更新 (每 100ms 更新一次，解决卡顿) ---
-            // 只有当距离上次渲染超过 100ms 时，才去动 DOM
             if (now - state.lastRender > 100) {
                 state.lastRender = now;
 
@@ -904,7 +1085,7 @@
             if(state.hand.length >= 10) return;
 
             $('btn-draw').classList.remove('suggest');
-            setStatus("READY", "var(--secondary-color)");
+            setStatus("msg_ready", "var(--secondary-color)");
 
             for(let i=0; i<n; i++) {
                 if(state.deck.length === 0) break;
@@ -916,27 +1097,22 @@
             sortHand();
             render(); 
             
-            // 立即移除数据标记
             state.hand.forEach(c => c.isNew = false);
 
-            // === 状态检查 ===
             if (isDbReady) {
-                // 1. 优先检查：反向头奖 (满手牌无解 = 奇迹)
                 if (state.hand.length === 10) {
                     if (!checkSolvability(state.hand)) {
                         const miracleHand = state.hand.map(c => c.val).join(', ');
                         setTimeout(() => {
                             gameOver(miracleHand, true, true); 
                         }, 1000);
-                        return; // 如果触发奇迹，就不继续往下检查死路了
+                        return;
                     }
                 }
 
-                // 2. --- 修改重点：新增死路检查 ---
-                // 条件：牌库空了 + 手牌没满(满了走上面) + 手牌不为空 + 无解
                 if (state.deck.length === 0 && state.hand.length > 0) {
                     if (!checkSolvability(state.hand)) {
-                        fail("DEAD END / STAGNATION"); // 触发失败扣血，理由：拖沓/死局
+                        fail("msg_dead_end");
                     }
                 }
             }
@@ -946,8 +1122,7 @@
             state.hand.sort((a,b) => a.val - b.val);
         }
 
-        // --- 视图更新 ---
-       function updateButtonStates() {
+        function updateButtonStates() {
             let sc = state.selection.length;
             let handLen = state.hand.length;
             
@@ -958,12 +1133,12 @@
             if(canExec) {
                 btnExec.disabled = false;
                 btnExec.classList.add('ready');
-                btnExec.innerHTML = `<span class="key-hint">↵</span>EXECUTE`; 
+                btnExec.innerHTML = `<span class="key-hint">↵</span>` + t('btn_exec'); 
             } else {
                 btnExec.disabled = true;
                 btnExec.classList.remove('ready');
-                let txt = sc < 2 ? "SELECT (2-4)" : "FULL";
-                btnExec.innerHTML = `<span class="key-hint">↵</span>${txt}`;
+                let txtKey = sc < 2 ? 'btn_select' : 'btn_full';
+                btnExec.innerHTML = `<span class="key-hint">↵</span>` + t(txtKey);
             }
 
             // 2. All In 按钮
@@ -972,20 +1147,18 @@
             
             if (showAllIn) {
                 btnAll.style.display = 'block';
-                if(!btnAll.querySelector('.key-hint')) {
-                     btnAll.innerHTML = `<span class="key-hint">↵</span>ALL IN`;
-                }
+                // 仅更新文本部分，保留 key-hint
+                // 注意：这里需要重新构建 innerHTML
+                btnAll.innerHTML = `<span class="key-hint">↵</span>` + t('btn_all');
             } else {
                 btnAll.style.display = 'none';
             }
 
-            // 3. Clear 按钮 (修正：恢复逻辑，仅在选中 >= 2 张时显示按钮)
+            // 3. Clear 按钮
             let btnClear = $('btn-clear');
             if (sc >= 2) {
                 btnClear.style.display = 'block';
-                if(!btnClear.querySelector('.key-hint')) {
-                    btnClear.innerHTML = `<span class="key-hint">ESC</span>CLEAR`;
-                }
+                btnClear.innerHTML = `<span class="key-hint">ESC</span>` + t('btn_clear');
             } else {
                 btnClear.style.display = 'none';
             }
@@ -995,24 +1168,14 @@
             const hintAll = btnAll.querySelector('.key-hint');
 
             if (canExec) {
-                // Execute 激活：显示它的提示，隐藏 All In 的
                 if(hintExec) hintExec.classList.remove('hint-hide');
                 if(hintAll) hintAll.classList.add('hint-hide'); 
             } else {
-                // Execute 禁用：隐藏它的提示
                 if(hintExec) hintExec.classList.add('hint-hide');
-
-                // 如果 All In 存在，显示 All In 的提示
                 if (showAllIn) {
                     if(hintAll) hintAll.classList.remove('hint-hide');
                 }
             }
-        }
-
-        // 强行触发布局重绘 (Reflow)
-        // 这是让浏览器意识到“元素刚刚是隐藏的，现在要显示了”的关键，否则浏览器会合并操作导致没有动画
-        function forceReflow() {
-            return document.body.offsetHeight; 
         }
 
         function updateCardVisual(id) {
@@ -1021,7 +1184,6 @@
             const isSelected = state.selection.includes(id);
             
             if (isSelected) {
-                // 如果还在入场隐身状态，移除它，让它现身
                 cardDiv.classList.remove('card-hidden'); 
                 cardDiv.classList.add('selected');
             } else {
@@ -1033,23 +1195,15 @@
             const idx = state.selection.indexOf(id);
             if (shouldSelect) {
                 if (idx === -1) {
-                    // === 修改重点：FIFO 自动顶替逻辑 ===
-                    // 如果已经选满了4张，用户又点了第5张
                     if (state.selection.length >= 4) {
-                        // 1. 移除最早选入的那张 (数组头部)
                         const firstId = state.selection.shift(); 
-                        // 2. 更新那张牌的视觉状态 (取消选中)
                         updateCardVisual(firstId); 
                     }
-                    // =================================
-                    
-                    // 正常的选中逻辑
                     state.selection.push(id);
                     updateCardVisual(id);
                     updateButtonStates();
                 }
             } else {
-                // 取消选中逻辑 (保持不变)
                 if (idx > -1) {
                     state.selection.splice(idx, 1);
                     updateCardVisual(id);
@@ -1065,22 +1219,15 @@
 
         function render() {
             const container = $('card-container');
-            
-            // 1. 建立现有 DOM 的映射
             const existingNodes = new Map();
             Array.from(container.children).forEach(el => {
                 if(el.dataset.id) existingNodes.set(parseFloat(el.dataset.id), el);
             });
 
-            // === 新增：新牌计数器 ===
-            // 专门记录这是本次 render 中遇到的第几张新牌，用于计算紧凑的延迟
             let newCardCounter = 0; 
-            // ======================
-
             state.hand.forEach((c, index) => {
                 let div = existingNodes.get(c.id);
 
-                // --- 新卡牌逻辑 ---
                 if (!div) {
                     div = document.createElement('div');
                     div.dataset.id = c.id;
@@ -1089,24 +1236,20 @@
                     
                     if (c.isNew) {
                         div.classList.add('card-hidden');
-                        void div.offsetWidth; // 强制重绘
-                        
+                        void div.offsetWidth; 
                         let delay = 16 + newCardCounter * 40;
                         newCardCounter++; 
-                        
                         setTimeout(() => {
                             div.classList.remove('card-hidden');
                         }, delay);
                     }
                 }
 
-                // --- 更新内容 ---
                 let keyLabel = (index + 1) % 10; 
                 div.innerHTML = `<span class="key-hint">${keyLabel}</span>${c.val}`;
 
                 container.appendChild(div);
 
-                // --- 更新选中状态 ---
                 const isSelected = state.selection.includes(c.id);
                 if (isSelected && !div.classList.contains('selected')) {
                     div.classList.remove('card-hidden');
@@ -1127,19 +1270,19 @@
 
         function updateDrawBtn() {
             let btn = $('btn-draw');
-            // 始终保留 Q 提示的 HTML 结构
             let hintHtml = `<span class="key-hint">Q</span>`;
-            
+            let txtKey = 'btn_draw';
+
             if(state.hand.length >= 10) { 
                 btn.disabled = true; 
-                btn.innerHTML = `${hintHtml}MAX`; 
+                txtKey = 'btn_max';
             } else if(state.deck.length === 0) { 
                 btn.disabled = true; 
-                btn.innerHTML = `${hintHtml}EMPTY`; 
+                txtKey = 'btn_empty';
             } else { 
                 btn.disabled = false; 
-                btn.innerHTML = `${hintHtml}DRAW`; 
             }
+            btn.innerHTML = hintHtml + t(txtKey);
         }
 
         // --- Touch ---
@@ -1198,12 +1341,10 @@
             updateButtonStates();
         }
 
-        // --- 检查当前手牌是否有任意解 ---
         function checkSolvability(hand) {
-            if (!isDbReady) return true; // 数据库没好默认当成有解，防止误判
+            if (!isDbReady) return true; 
             
             const indices = hand.map((_, i) => i);
-            // 检查 4张、3张、2张 的组合
             const trySizes = [4, 3, 2]; 
 
             for (let r of trySizes) {
@@ -1211,17 +1352,16 @@
                 for (let comboIndices of combos) {
                     let values = comboIndices.map(i => hand[i].val).sort((a, b) => a - b);
                     if (solutionDB.has(values.join(','))) {
-                        return true; // 只要找到一个解，立刻返回 true
+                        return true; 
                     }
                 }
             }
-            return false; // 找遍了所有组合都没解
+            return false;
         }
         
-        // --- Logic ---
         function execCards() {
             if(state.selection.length < 2 || state.selection.length > 4) return;
-            if(!isDbReady) { setStatus("DB NOT READY", "var(--alert-color)"); return; }
+            if(!isDbReady) { setStatus("msg_db_not_ready", "var(--alert-color)"); return; }
 
             let selectedCards = state.hand.filter(c => state.selection.includes(c.id));
             let values = selectedCards.map(c => c.val);
@@ -1230,66 +1370,50 @@
             const resultLine = solutionDB.get(key);
             
             if(resultLine) {
-                // === 成功逻辑 ===
-                setStatus("CALCULATION VALID", "var(--success-color)");
+                setStatus("msg_calc_valid", "var(--success-color)");
                 
-                // 呼吸模式奖励：重置时间
                 if(cfg.time === 'breathing') state.breath = 10.0;
                 
-                // 记录成功历史
                 state.history.push({ cards: selectedCards.map(c=>c.val), sol: resultLine, status: 'success' });
 
-                // 核心变化：只有成功时才移除手牌
                 state.hand = state.hand.filter(c => !state.selection.includes(c.id));
                 state.selection = [];
                 render(); 
 
-                // 检查是否下一轮或通关
                 if(state.active && state.hand.length === 0) {
+                    state.active = false; 
                     
-                    // === 修改重点：暂停游戏防止“双重重置” ===
-                    state.active = false; // 暂停 tick 循环
-                    
-                    // 手动定格进度条为满格（视觉反馈：完美！）
                     if (state.barEl) {
                         state.barEl.style.transform = 'scaleX(1)';
                         if(cfg.time === 'breathing') state.barEl.style.backgroundColor = 'var(--primary-color)';
                     }
-                    // -------------------------------------
 
                     if (cfg.rounds === -1 || state.currentRound < state.maxRounds) {
                         state.currentRound++;
-                        let msg = cfg.rounds === -1 ? "WAVE CLEARED" : "NEXT PHASE";
-                        setStatus(msg + "...", "var(--primary-color)");
+                        let msgKey = cfg.rounds === -1 ? "msg_wave_cleared" : "msg_next_phase";
+                        setStatus(msgKey, "var(--primary-color)");
                         setTimeout(() => {
-                            startRound(); // startRound 里面现在会把 active 设回 true
+                            startRound(); 
                         }, 100); 
                     } else {
-                        setTimeout(() => gameOver("MISSION COMPLETE", true), 100);
+                        setTimeout(() => gameOver("msg_mission_complete", true), 100);
                     }
                 } else if (state.active && state.hand.length > 0) {
-                    // 只有当牌库空了，且手里还有牌，且没通关时检查
                     if (state.deck.length === 0) {
                         if (!checkSolvability(state.hand)) {
-                            fail("DEAD END / STAGNATION"); // 触发失败扣血，理由：拖沓/死局
+                            fail("msg_dead_end"); 
                         } else {
-                            // 有解，恢复 Ready
-                            setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+                            setTimeout(() => { setStatus("msg_ready", "var(--secondary-color)"); }, 800);
                         }
                     } else {
-                        // 牌库还有牌，正常恢复 Ready
-                        setTimeout(() => { setStatus("READY", "var(--secondary-color)"); }, 800);
+                        setTimeout(() => { setStatus("msg_ready", "var(--secondary-color)"); }, 800);
                     }
                 }
 
             } else {
-                // 1. 先记录这手牌失败了
                 state.history.push({ cards: selectedCards.map(c=>c.val), sol: null, status: 'fail' });
-            
-                // 2. 触发失败 (内部会调用 gameOver)
-                fail("NO SOLUTION"); 
+                fail("msg_no_solution"); 
 
-                // 3. 如果没死（active还是true），才进行界面重置
                 if (state.active) {
                     if(cfg.time === 'breathing') state.breath = 10.0;
                     clearSelection();
@@ -1297,29 +1421,19 @@
             }
         }
 
-        function fail(reason) {
+        function fail(reasonKey) {
             state.chances--;
             updateStats();
             
-            // === 修改重点：使用 CSS Class 触发抖动 ===
             const win = $('main-window');
-            
-            // 1. 移除可能存在的类（防止连续失败时动画不触发）
             win.classList.remove('anim-shake');
-            
-            // 2. 强制浏览器重绘 (Reflow)，这是让动画能立刻再次触发的关键魔法
             void win.offsetWidth; 
-            
-            // 3. 添加类，开始抖动
             win.classList.add('anim-shake');
-            
-            // 4. 动画结束后清理（虽然不清理也行，但保持整洁）
             setTimeout(() => {
                 win.classList.remove('anim-shake');
-            }, 210); // 略大于动画时间的 0.2s
-            // =======================================
+            }, 210); 
 
-            if(state.chances < 0) gameOver(reason, false);
+            if(state.chances < 0) gameOver(reasonKey, false);
         }
 
         function updateStats() {
@@ -1331,16 +1445,15 @@
             return `p24_record_${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
         }
         
-        function gameOver(msg, win, isMiracle = false) {
+        function gameOver(msgKeyOrRaw, win, isMiracle = false) {
             state.active = false;
             clearInterval(state.interval);
 
-            // 如果手里还有牌（无论是输了还是奇迹），都记录下来
             if (state.hand.length > 0) {
                 state.history.push({ 
                     cards: state.hand.map(c => c.val), 
-                    sol: null, // 剩余手牌通常不需要显示特定解法（或者由系统后续判断），这里置空
-                    status: 'remaining' // 特殊状态标记
+                    sol: null, 
+                    status: 'remaining' 
                 });
             }
             
@@ -1350,171 +1463,141 @@
             const recordEl = $('end-record');
             const timeEl = $('end-time');
             
-            // --- 0. 计算分数 (无限模式) ---
-            // 核心修正：无论是不是奇迹，无限模式下，当前这局都没过（或者不算过）
-            // 所以分数永远是 currentRound - 1
             let survivalScore = 0;
             if (cfg.rounds === -1) {
                 survivalScore = Math.max(0, state.currentRound - 1);
             }
 
-            // --- 1. 标题与样式处理 (UI层) ---
             if (isMiracle) {
-                title.innerText = "LEGENDARY"; 
+                title.innerText = t('legendary_title'); 
                 title.style.color = "#FFD700"; 
                 title.style.textShadow = "0 0 20px #FFD700, 0 0 40px #FF4500";
-                msgEl.innerHTML = `<span style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">IMPOSSIBLE HAND DISCOVERED</span><span style="color:#fff; font-size:1.2rem; font-family:monospace">[ ${msg} ]</span>`;
+                msgEl.innerHTML = `<span style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">${t('msg_legendary_sub')}</span><span style="color:#fff; font-size:1.2rem; font-family:monospace">[ ${msgKeyOrRaw} ]</span>`;
             } 
             else {
-                // 恢复默认样式
                 title.style.color = ""; 
                 title.style.textShadow = "";
-                msgEl.innerText = msg;
+                // 此时 msgKeyOrRaw 应该是 key
+                msgEl.innerText = t(msgKeyOrRaw);
 
                 if (cfg.rounds === -1) {
                     if (survivalScore > 0) {
-                        title.innerText = "RUN ENDED";
+                        title.innerText = t('run_ended_title');
                         title.className = "title-success";
                     } else {
-                        title.innerText = "FAILURE";
+                        title.innerText = t('fail_title');
                         title.className = "title-failure";
                     }
                 } else {
-                    title.innerText = win ? "SUCCESS" : "FAILURE";
+                    title.innerText = win ? t('success_title') : t('fail_title');
                     title.className = win ? "title-success" : "title-failure";
                 }
             }
 
-            // --- 2. 中间大字数据显示 ---
             if (cfg.rounds === -1) {
-                timeEl.innerText = `ROUNDS CLEARED: ${survivalScore}`;
+                timeEl.innerText = t('rec_round_prefix') + survivalScore;
                 timeEl.style.color = "var(--primary-color)";
             } else {
-                timeEl.innerText = "TOTAL TIME: " + fmtTimePrecise(state.totalTime);
+                timeEl.innerText = t('rec_time_prefix') + fmtTimePrecise(state.totalTime);
             }
 
-            // --- 3. 记录判定逻辑 (核心修正) ---
             const key = getRecordKey();
             const lastRecord = localStorage.getItem(key);
             let bestVal = lastRecord ? parseFloat(lastRecord) : null;
 
             if (state.hintUsed) {
-                recordEl.innerText = "RECORD INVALID (ASSISTED)";
+                recordEl.innerText = t('rec_invalid');
                 recordEl.style.color = "var(--alert-color)";
                 recordEl.style.animation = "none";
             }
-            // === 情况 A: 无限模式 ===
             else if (cfg.rounds === -1) {
-                // 在无限模式下，只有生存分数 > 0 才具备“刷新记录”的资格
-                // 这相当于竞速模式下的 "Win"
                 if (survivalScore > 0) {
                     if (bestVal === null || survivalScore > bestVal) {
                         localStorage.setItem(key, survivalScore);
-                        recordEl.innerText = "NEW RECORD UPDATED";
+                        recordEl.innerText = t('rec_new');
                         recordEl.style.color = "var(--success-color)";
                         recordEl.style.animation = "pulse 1s infinite";
                     } else {
-                        recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
+                        recordEl.innerText = `${t('rec_best')} ${bestVal}`;
                         recordEl.style.color = "#888"; 
                         recordEl.style.animation = "none";
                     }
                 } 
-                // 如果得分是 0 (第1局就挂了)，相当于竞速模式下的 "Fail"
-                // 此时不更新记录，只展示已有记录或 NO RECORD
                 else {
                     if (bestVal !== null) {
-                        recordEl.innerText = `BEST RECORD: ${bestVal} RNDS`;
+                        recordEl.innerText = `${t('rec_best')} ${bestVal}`;
                     } else {
-                        recordEl.innerText = "NO RECORD";
+                        recordEl.innerText = t('rec_none');
                     }
                     recordEl.style.color = "#666";
                     recordEl.style.animation = "none";
                 }
             }
-            // === 情况 B: 普通竞速模式下的 Miracle ===
             else if (isMiracle) {
-                 // 竞速模式下，Miracle 不计入时间成绩
-                 recordEl.innerText = "RECORD UNAFFECTED";
+                 recordEl.innerText = t('rec_unaffected');
                  recordEl.style.color = "#FFD700";
                  recordEl.style.animation = "none";
             }
-            // === 情况 C: 普通竞速模式下的正常胜利 ===
             else if (win) {
                 if (bestVal === null || state.totalTime < bestVal) {
                     localStorage.setItem(key, state.totalTime);
-                    recordEl.innerText = "NEW RECORD UPDATED";
+                    recordEl.innerText = t('rec_new');
                     recordEl.style.color = "var(--success-color)";
                     recordEl.style.animation = "pulse 1s infinite"; 
                 } else {
-                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestVal)}`;
+                    recordEl.innerText = `${t('rec_best')} ${fmtTimePrecise(bestVal)}`;
                     recordEl.style.color = "#888";
                     recordEl.style.animation = "none";
                 }
             } 
             else {
-                // 普通失败
                 if (bestVal !== null) {
-                    recordEl.innerText = `BEST RECORD: ${fmtTimePrecise(bestVal)}`;
+                    recordEl.innerText = `${t('rec_best')} ${fmtTimePrecise(bestVal)}`;
                 } else {
-                    recordEl.innerText = "NO RECORD";
+                    recordEl.innerText = t('rec_none');
                 }
                 recordEl.style.color = "#666";
                 recordEl.style.animation = "none";
             }
 
+            // === Config Display ===
+            // 使用翻译后的文本
+            const deckKey = 'btn_' + cfg.deck;
+            const timeKey = 'btn_' + cfg.time;
+            const lifeKey = 'btn_' + cfg.life;
+            let roundKey = 'btn_base';
+            if(cfg.rounds === 10) roundKey = 'btn_endurance';
+            else if(cfg.rounds === -1) roundKey = 'btn_infinite';
             
-            // === 1. 显示游戏配置 (Config) ===
-            // 定义映射表，方便显示漂亮的文本
-            const deckMap = { 'simple': 'SIMPLE', 'classic': 'CLASSIC', 'standard': 'STANDARD' };
-            const timeMap = { 'endless': 'ENDLESS', 'hourglass': 'HOURGLASS', 'breathing': 'BREATHING' };
-            const lifeMap = { 'casual': 'CASUAL', 'challenge': 'CHALLENGE', 'extreme': 'EXTREME' };
-            // 赛程特殊处理
-            let roundTxt = cfg.rounds;
-            if (cfg.rounds === 1) roundTxt = 'BASE';
-            else if (cfg.rounds === 10) roundTxt = 'ENDURANCE';
-            else if (cfg.rounds === -1) roundTxt = 'INFINITE';
+            // 去掉括号里的内容简略显示
+            const clean = (k) => t(k).split(' (')[0];
 
-            // 拼接字符串：STANDARD / BREATHING / CHALLENGE / BASE
             const configStr = [
-                deckMap[cfg.deck] || cfg.deck,
-                timeMap[cfg.time] || cfg.time,
-                lifeMap[cfg.life] || cfg.life,
-                roundTxt
+                clean(deckKey),
+                clean(timeKey),
+                clean(lifeKey),
+                clean(roundKey)
             ].join(' / ').toUpperCase();
 
             $('end-config').innerText = configStr;
 
-            // === 2. 处理通关次数 (Mode Specific Clear Count) ===
-            
-            // 1. 构建当前模式的唯一键名 (与最佳纪录的键名逻辑保持一致)
-            // 格式: p24_clears_standard_breathing_challenge_10
+            // === Clears ===
             const modeKeyRaw = `${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
             const clearKey = `p24_clears_${modeKeyRaw}`;
-            
-            // 2. 读取当前模式的通关数
             let modeClears = parseInt(localStorage.getItem(clearKey) || '0');
 
-            // 3. 判定是否为有效通关 (逻辑保持不变)
-            // - 普通模式: 赢了 (win)
-            // - 无限模式: 只要没死在第1关 (survivalScore > 0)
-            // - 排除: 奇迹结局 (isMiracle) 不计入
             const isStandardWin = (cfg.rounds !== -1 && win);
             const isInfiniteClear = (cfg.rounds === -1 && survivalScore > 0);
-            
             const isValidClear = (isStandardWin || isInfiniteClear) && !isMiracle && !state.hintUsed;
 
-            // 4. 如果有效，计数+1 并保存
             if (isValidClear) {
                 modeClears++;
                 localStorage.setItem(clearKey, modeClears);
             }
 
-            // 5. 显示文本
             const clearsEl = $('end-clears');
-            // 修改文案为 "MODE CLEARS" 以体现这是当前模式的数据
-            clearsEl.innerText = `MODE CLEARS: ${modeClears}`;
+            clearsEl.innerText = `${t('mode_clears')} ${modeClears}`;
             
-            // 样式处理：如果是有效通关，显示高亮绿色
             if (isValidClear) {
                 clearsEl.style.color = "var(--success-color)";
                 clearsEl.style.textShadow = "0 0 10px rgba(0, 255, 157, 0.3)";
@@ -1537,27 +1620,25 @@
             let list = $('review-list');
             let cardDisplay = $('review-display');
             let solDisplay = $('review-sol');
-            let lblSol = $('lbl-sol'); // 获取标签元素
+            let lblSol = $('lbl-sol'); 
 
             list.innerHTML = ''; cardDisplay.innerHTML = ''; solDisplay.innerText = ''; 
             
             if (state.history.length === 0) {
-                // 没记录时特殊处理一下显隐
                 lblSol.style.display = 'block';
                 solDisplay.style.display = 'block';
-                solDisplay.innerText = "NO RECORDS";
+                solDisplay.innerText = t('lbl_no_records');
                 solDisplay.style.color = "var(--secondary-color)";
                 return;
             }
 
-            // 倒序遍历，让最新的在最上面
             [...state.history].reverse().forEach((h, i) => {
                 let d = document.createElement('div');
                 d.className = 'log-entry';
                 let originalIndex = state.history.length - i;
 
                 if (h.status === 'remaining') {
-                    d.innerText = `[REMAINING]`; 
+                    d.innerText = `[${t('lbl_remaining')}]`; 
                     d.style.color = "var(--secondary-color)";
                     d.style.letterSpacing = "1px";
                 } else {
@@ -1579,13 +1660,10 @@
                         `<div class="card selected" style="cursor:default">${v}</div>`
                     ).join('');
                     
-                    // === 修改重点：控制右侧显隐 ===
                     if (h.status === 'remaining') {
-                        // 如果是剩余手牌，隐藏解法相关文字
                         lblSol.style.display = 'none';
                         solDisplay.style.display = 'none';
                     } else {
-                        // 如果是普通记录，显示并填充内容
                         lblSol.style.display = 'block';
                         solDisplay.style.display = 'block';
                         
@@ -1593,7 +1671,7 @@
                             solDisplay.innerText = h.sol;
                             solDisplay.style.color = "var(--primary-color)";
                         } else {
-                            solDisplay.innerText = "NO SOLUTION";
+                            solDisplay.innerText = t('lbl_no_solution');
                             solDisplay.style.color = "var(--alert-color)";
                         }
                     }
@@ -1601,11 +1679,9 @@
                 list.appendChild(d);
             });
             
-            // 默认选中第一项（也就是倒序后的最新一项）
             if (list.firstChild) list.firstChild.click();
         }
 
-        // --- 新增：提示功能 ---
         function getHint() {
             if (!state.active || !isDbReady) return;
 
@@ -1616,15 +1692,10 @@
 
             const hand = state.hand;
             const indices = hand.map((_, i) => i); 
-
-            // 优先找4张，其次3张，最后2张
             const trySizes = [4, 3, 2]; 
 
             for (let r of trySizes) {
-                // 1. 获取当前张数的所有可能下标组合 (例如所有2张牌的组合)
                 let combos = getCombinations(indices, r);
-                
-                // 如果有多个解，系统会随机挑一个，而不是永远选最左边的
                 shuffleArray(combos); 
                 
                 for (let comboIndices of combos) {
@@ -1634,23 +1705,20 @@
 
                     if (solutionDB.has(key)) {
                         candidateCards.forEach(c => toggleSelect(c.id));
-                        setStatus("SOLUTION FOUND", "var(--success-color)");
+                        // 这里不需要 setStatus 提示找到解，因为选中牌后视觉上已经很明显了
                         return; 
                     }
                 }
             }
 
-            // 无解逻辑
             if (state.hand.length < 10) {
-                setStatus("NO MOVES - DRAW CARD", "var(--primary-color)");
+                setStatus("msg_no_moves", "var(--primary-color)");
                 $('btn-draw').classList.add('suggest');
             } else {
-                // 如果运行到了，说明之前的自动检查漏了（可能是因为当时DB没加载好）
-                setStatus("DEADLOCK / DB LAG", "var(--alert-color)");
+                setStatus("msg_deadlock", "var(--alert-color)");
             }
         }
 
-        // 辅助函数：生成数组 arr 中取 k 个元素的所有组合
         function getCombinations(arr, k) {
             let i, subI, ret = [], sub, next;
             for (i = 0; i < arr.length; i++) {
@@ -1669,9 +1737,8 @@
         }
 
         async function loadData() {
-            setStatus("LOADING DATA...", "var(--primary-color)");
+            setStatus("msg_loading", "var(--primary-color)");
 
-            // 内部辅助函数：解析文本并填入 Map
             const processData = (text) => {
                 solutionDB.clear();
                 text.split('\n').forEach(line => {
@@ -1685,68 +1752,50 @@
             };
 
             try {
-                // 1. 优先尝试网络请求
                 const response = await fetch('https://stellate0511.github.io/Project-24/database.txt');
                 if (!response.ok) throw new Error("Network connection failed");
                 
                 const text = await response.text();
-                
-                // 2. 网络加载成功：解析数据
                 processData(text);
                 
-                // 3. 核心修改：将成功获取的数据存入本地缓存
                 try {
                     localStorage.setItem('p24_db_cache', text);
-                    console.log("Database cached to LocalStorage.");
                 } catch (e) {
                     console.warn("Cache write failed (storage full?)", e);
                 }
 
                 isDbReady = true;
-                setStatus("SYSTEM READY", "var(--secondary-color)");
-                console.log(`Database loaded (Online): ${solutionDB.size} entries.`);
+                setStatus("msg_ready", "var(--secondary-color)");
 
             } catch (err) {
                 console.warn("Network load failed, attempting fallback...", err);
-                
-                // 4. 网络失败：尝试读取本地缓存
                 const cachedText = localStorage.getItem('p24_db_cache');
                 
                 if (cachedText) {
-                    // 5. 缓存命中：使用缓存数据
                     processData(cachedText);
                     isDbReady = true;
-                    // 给用户一个小提示：当前是离线模式
-                    setStatus("READY (OFFLINE)", "var(--secondary-color)");
-                    console.log(`Database loaded (Cache): ${solutionDB.size} entries.`);
+                    setStatus("msg_ready", "var(--secondary-color)");
                 } else {
-                    // 6. 彻底失败（既没网也没缓存）
                     console.error("Critical: No network and no cache.");
-                    setStatus("DB LOAD FAIL", "var(--alert-color)");
+                    setStatus("msg_db_fail", "var(--alert-color)");
                     alert("连接失败，且无本地缓存数据！");
                 }
             }
         }
         loadData();
 
-        // --- 自动加载上次的菜单选项 ---
         function loadLastConfig() {
             const saved = localStorage.getItem('p24_last_config');
-            if (!saved) return; // 如果没有记录，使用默认值
+            if (!saved) return; 
 
             try {
                 const parsed = JSON.parse(saved);
-                // 更新 cfg 对象
                 Object.assign(cfg, parsed);
 
-                // 辅助函数：更新UI选中状态
                 const setUI = (groupId, val) => {
                     const group = $(groupId);
                     if (!group) return;
-                    // 移除该组所有 active
                     group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                    // 找到对应值的按钮并激活
-                    // 注意：dataset.val 都是字符串，所以这里要把 val 转字符串匹配
                     const target = group.querySelector(`button[data-val="${val}"]`);
                     if (target) target.classList.add('active');
                 };
@@ -1760,26 +1809,19 @@
                 console.error("Config load error", e);
             }
         }
-        // 立即执行加载
         loadLastConfig();
 
-        // --- 新增：键盘事件监听 ---
         document.addEventListener('keydown', (e) => {
-            // 如果不在游戏活跃状态，或者正在显示遮罩层，不响应按键
             if (!state.active || $('game-over').style.display === 'flex' || $('review-ui').style.display === 'flex') return;
 
             const key = e.key.toLowerCase();
 
-            // 1. 处理数字键 1-9 和 0 (对应卡牌)
             if (/\d/.test(key)) {
                 let num = parseInt(key);
-                // 逻辑转换：按键1->索引0 ... 按键0->索引9
                 let targetIndex = (num === 0) ? 9 : num - 1;
                 
-                // 确保手牌里有这张牌
                 if (state.hand[targetIndex]) {
                     toggleSelect(state.hand[targetIndex].id);
-                    // 添加一个按下的视觉反馈效果（可选）
                     const cardEl = document.querySelectorAll('.card')[targetIndex];
                     if(cardEl) {
                         cardEl.style.transform = "scale(0.95)";
@@ -1789,33 +1831,27 @@
                 return;
             }
 
-            // 2. 功能键
             switch(key) {
-                case 'q': // Q - 摸牌
+                case 'q': 
                     if (!$('btn-draw').disabled) {
                         drawCards(1);
                         simulateClick('btn-draw');
                     }
                     break;
                     
-                case 'escape': // Esc - 取消选择
+                case 'escape': 
                     if (state.selection.length > 0) {
                         clearSelection();
                         simulateClick('btn-clear');
                     }
                     break;
                     
-                case 'enter': // Enter - 智能判断
-                    // 逻辑修正：优先响应“Execute”（手动出牌）
-                    // 只有当不能 Execute 时，才尝试响应 “All In”
-                    
+                case 'enter': 
                     if (!$('btn-exec').disabled) {
-                        // 情况1：已选中2-4张牌 -> 执行出牌
                         execCards();
                         simulateClick('btn-exec');
                     } 
                     else if ($('btn-all').style.display === 'block') {
-                        // 情况2：未满足出牌条件，但满足All In条件（手牌共2-4张） -> 全选并执行
                         selectAllAndExec();
                         simulateClick('btn-all');
                     }
@@ -1823,7 +1859,6 @@
             }
         });
 
-        // 辅助函数：给按钮增加点击的视觉反馈
         function simulateClick(btnId) {
             const btn = $(btnId);
             if(btn) {
@@ -1833,58 +1868,40 @@
         }
         
         document.addEventListener('click', (e) => {
-            // 查找被点击元素是否是 button 或在 button 内部
             const btn = e.target.closest('button');
             if (btn) {
-                btn.blur(); // 强制移除焦点
+                btn.blur(); 
             }
         }, true);
 
-        // === 主题控制系统 ===
+        // === 主题与语言控制 ===
         
-        // 初始化
         function initTheme() {
-            // 读取保存的主题，没有则默认为 'dark'
             const savedTheme = localStorage.getItem('p24_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeBtnText(savedTheme);
+            // 初始化语言 (会同时刷新主题按钮文字)
+            setLang(state.lang);
         }
 
-        // 切换逻辑
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
-            // 如果是 dark，切到 light；反之亦然
             const next = current === 'dark' ? 'light' : 'dark';
-            
-            // 1. 设置属性 -> CSS 自动变身
             document.documentElement.setAttribute('data-theme', next);
-            
-            // 2. 保存到本地存储
             localStorage.setItem('p24_theme', next);
-            
-            // 3. 更新按钮文字
-            updateThemeBtnText(next);
+            updateThemeBtnText();
         }
 
-        // 更新按钮文字
-        function updateThemeBtnText(theme) {
-            // 获取两个按钮（启动页的大按钮，游戏内的小按钮）
+        function updateThemeBtnText() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
             const btnMain = document.getElementById('theme-btn-main');
-            const btnMini = document.getElementById('theme-btn-mini');
             
-            // 逻辑：当前是 dark -> 显示 "点缀" (代表默认)
-            //       当前是 light -> 显示 "星空" (代表新主题)
-            //       或者你想反过来：按钮显示的是“点击后会变成的样子”？
-            //       按你的描述："切换的地方是一个显示'点缀'的按钮，点击...会显示'星空'"
-            //       这意味着：Dark模式下按钮字是"点缀"，Light模式下按钮字是"星空"。
-            
-            const text = theme === 'dark' ? '点缀' : '星空';
-            
-            if(btnMain) btnMain.innerText = text;
-            if(btnMini) btnMini.innerText = text;
+            // 按钮显示的是"当前主题的名字"
+            // 暗色模式显示 "点缀" (或 Cyber)
+            // 亮色模式显示 "星空" (或 Cute)
+            const key = currentTheme === 'dark' ? 'theme_dark' : 'theme_light';
+            if(btnMain) btnMain.innerText = t(key);
         }
 
-        // 立即运行初始化
         initTheme();
     </script>
 </body>
