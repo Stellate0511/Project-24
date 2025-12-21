@@ -637,8 +637,16 @@
                 </button>
             </div>
             
-            <h1 data-i18n="title">PROJECT: 24</h1>
-            
+            <h1>PROJECT: 24</h1>
+
+            <div class="config-group">
+                <span class="config-title" data-i18n="lbl_target">TARGET</span>
+                <div class="btn-group" id="opt-target">
+                    <button class="active" data-val="24">24</button>
+                    <button data-val="36">36</button>
+                    <button data-val="60">60</button>
+                </div>
+            </div>
             <div class="config-group">
                 <span class="config-title" data-i18n="lbl_dataset">DATASET</span>
                 <div class="btn-group" id="opt-deck">
@@ -737,7 +745,7 @@
                 
                 <div class="rule-section">
                     <h2>🎯 核心目标</h2>
-                    <p>使用手牌中的数字，通过 <strong class="highlight">加减乘除</strong>（可任意使用括号、允许中间出现负数或小数）计算出 <strong class="highlight">24</strong>，并清空所有手牌。</p>
+                    <p>使用手牌中的数字，通过 <strong class="highlight">加减乘除</strong>（可任意使用括号、允许中间出现负数或小数）计算出 <strong class="highlight dyn-target">24</strong>，并清空所有手牌。</p>
                 </div>
                 
                 <div class="rule-section">
@@ -754,8 +762,8 @@
                         <div class="step">
                             <h3>3. 执行</h3>
                             <ul>
-                                <li><span class="success">成功</span>：计算出24，牌移除。</li>
-                                <li><span class="danger">失败</span>：无法算出24，扣除机会。</li>
+                                <li><span class="success">成功</span>：计算出<span class="dyn-target">24</span>，牌移除。</li>
+                                <li><span class="danger">失败</span>：无法算出<span class="dyn-target">24</span>，扣除机会。</li>
                             </ul>
                         </div>
                         <div class="step">
@@ -822,7 +830,7 @@
                 
                 <div class="rule-section">
                     <h2>🎯 OBJECTIVE</h2>
-                    <p>Use cards in hand to calculate <strong class="highlight">24</strong> using <strong class="highlight">+ - × ÷</strong> (parentheses, negatives, decimals allowed). Clear all cards to win.</p>
+                    <p>Use cards in hand to calculate <strong class="highlight dyn-target">24</strong> using <strong class="highlight">+ - × ÷</strong> (parentheses, negatives, decimals allowed). Clear all cards to win.</p>
                 </div>
                 
                 <div class="rule-section">
@@ -839,8 +847,8 @@
                         <div class="step">
                             <h3>3. EXECUTE</h3>
                             <ul>
-                                <li><span class="success">SUCCESS</span>: Result is 24. Cards removed.</li>
-                                <li><span class="danger">FAIL</span>: Result is not 24. Lose a chance.</li>
+                                <li><span class="success">SUCCESS</span>: Result is <span class="dyn-target">24</span>. Cards removed.</li>
+                                <li><span class="danger">FAIL</span>: Result is not <span class="dyn-target">24</span>. Lose a chance.</li>
                             </ul>
                         </div>
                         <div class="step">
@@ -959,10 +967,10 @@
         // === I18N 字典 ===
         const i18n = {
             zh: {
-                title: "PROJECT: 24",
                 profile_back: "回到主页",
                 profile_role: "状态：已连接",
                 lbl_dataset: "牌库设定",
+                lbl_target: "目标数字",
                 
                 btn_simple: "简单",
                 btn_classic: "经典",
@@ -1043,9 +1051,10 @@
                 btn_close_rules: "关闭指南"
             },
             en: {
-                title: "PROJECT: 24",
                 profile_back: "HOME",
                 profile_role: "STATUS: LINKED",
+                
+                lbl_target: "TARGET",
                 
                 lbl_dataset: "DECK",
                 btn_simple: "SIMPLE",
@@ -1129,7 +1138,7 @@
         };
 
         // --- 核心状态 ---
-        const cfg = { deck:'standard', time:'endless', life:'challenge', rounds: 1 };
+        const cfg = { target: 24, deck:'standard', time:'endless', life:'challenge', rounds: 1 };
         const state = {
             deck: [], hand: [], selection: [], history: [],
             chances: 0, timer: 0, interval: null, breath: 10.0,
@@ -1182,6 +1191,16 @@
                 const p = e.target.parentElement;
                 p.querySelectorAll('button').forEach(x => x.classList.remove('active'));
                 e.target.classList.add('active');
+
+                if(p.id === 'opt-target') {
+                    const newTarget = parseInt(e.target.dataset.val);
+                    if(cfg.target !== newTarget) {
+                        cfg.target = newTarget;
+                        updateAppIdentity(); // 更新标题和UI
+                        loadData();          // 重新加载对应的数据库
+                    }
+                }
+                
                 if(p.id==='opt-deck') cfg.deck = e.target.dataset.val;
                 if(p.id==='opt-time') cfg.time = e.target.dataset.val;
                 if(p.id==='opt-life') cfg.life = e.target.dataset.val;
@@ -1736,8 +1755,12 @@
             $('chance-val').innerText = disp;
         }
 
+        function getPrefix() {
+            return `p${cfg.target}`; // 返回 p24, p36, 或 p60
+        }
+        
         function getRecordKey() {
-            return `p24_record_${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
+            return `${getPrefix()}_record_${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
         }
         
         function gameOver(msgKeyOrRaw, win, isMiracle = false) {
@@ -1868,6 +1891,7 @@
             const clean = (k) => t(k).split(' (')[0];
 
             const configStr = [
+                cfg.target.toString(),
                 clean(deckKey),
                 clean(timeKey),
                 clean(lifeKey),
@@ -1878,7 +1902,7 @@
 
             // === Clears ===
             const modeKeyRaw = `${cfg.deck}_${cfg.time}_${cfg.life}_${cfg.rounds}`;
-            const clearKey = `p24_clears_${modeKeyRaw}`;
+            const clearKey = `${getPrefix()}_clears_${modeKeyRaw}`;
             let modeClears = parseInt(localStorage.getItem(clearKey) || '0');
 
             const isStandardWin = (cfg.rounds !== -1 && win);
@@ -2032,39 +2056,56 @@
         }
 
         async function loadData() {
+            // 重置状态
+            isDbReady = false; 
+            solutionDB.clear();
+            
+            // 显示加载中，如果有 msg-display 的话
             setStatus("msg_loading", "var(--primary-color)");
-
+        
+            const target = cfg.target; // 获取当前目标 (24, 36, 60)
+            const fileName = `database${target}.txt`; // 例如 database24.txt
+            const cacheKey = `p${target}_db_cache`;   // 例如 p24_db_cache
+        
+            console.log(`Loading Data for Target: ${target}...`);
+        
             const processData = (text) => {
                 solutionDB.clear();
                 text.split('\n').forEach(line => {
                     line = line.trim();
                     if (!line || !line.includes('=')) return; 
+                    // 过滤掉注释或空行，确保只存算式
                     let nums = line.replace(/[^\d]/g, ' ').trim().split(/\s+/).map(Number);
-                    nums.pop(); 
+                    nums.pop(); // 去掉最后的结果数字
                     nums.sort((a, b) => a - b);
                     solutionDB.set(nums.join(','), line);
                 });
             };
-
+        
             try {
-                const response = await fetch('https://stellate0511.github.io/Project-24/database.txt');
+                // 1. 尝试网络请求
+                const response = await fetch(`https://stellate0511.github.io/Project-24/${fileName}`);
+                
                 if (!response.ok) throw new Error("Network connection failed");
                 
                 const text = await response.text();
                 processData(text);
                 
+                // 写入对应目标的缓存
                 try {
-                    localStorage.setItem('p24_db_cache', text);
+                    localStorage.setItem(cacheKey, text);
                 } catch (e) {
-                    console.warn("Cache write failed (storage full?)", e);
+                    console.warn("Cache write failed", e);
                 }
-
+        
                 isDbReady = true;
                 setStatus("msg_ready", "var(--secondary-color)");
-
+        
             } catch (err) {
-                console.warn("Network load failed, attempting fallback...", err);
-                const cachedText = localStorage.getItem('p24_db_cache');
+                console.warn(`Network load failed for ${target}, attempting fallback...`, err);
+                
+                // 2. 尝试读取对应目标的本地缓存
+                const cachedText = localStorage.getItem(cacheKey);
                 
                 if (cachedText) {
                     processData(cachedText);
@@ -2073,20 +2114,42 @@
                 } else {
                     console.error("Critical: No network and no cache.");
                     setStatus("msg_db_fail", "var(--alert-color)");
-                    alert("连接失败，且无本地缓存数据！");
+                    // 只有在非 24 (默认) 的情况下才提示严重错误，避免首次加载吓到用户
+                    alert(`无法加载 ${target} 点的解法数据，请检查网络！`);
                 }
             }
         }
-        loadData();
 
+        function updateAppIdentity() {
+            const tVal = cfg.target;
+            
+            // 1. 更新网页标题和 H1
+            const titleStr = `PROJECT: ${tVal}`;
+            document.title = titleStr;
+            document.querySelector('h1').innerText = titleStr;
+        
+            // 2. 更新所有带有 .dyn-target 类的数字 (规则文本)
+            document.querySelectorAll('.dyn-target').forEach(el => {
+                el.innerText = tVal;
+            });
+        }
+
+        // 修改 loadLastConfig，确保加载上次配置时也刷新UI
         function loadLastConfig() {
             const saved = localStorage.getItem('p24_last_config');
-            if (!saved) return; 
-
+            if (!saved) {
+                // 如果没有存档，默认加载一次数据
+                loadData();
+                return; 
+            }
+        
             try {
                 const parsed = JSON.parse(saved);
+                // 确保 target 存在 (兼容旧存档)
+                if(!parsed.target) parsed.target = 24; 
+                
                 Object.assign(cfg, parsed);
-
+        
                 const setUI = (groupId, val) => {
                     const group = $(groupId);
                     if (!group) return;
@@ -2094,14 +2157,20 @@
                     const target = group.querySelector(`button[data-val="${val}"]`);
                     if (target) target.classList.add('active');
                 };
-
+        
+                setUI('opt-target', cfg.target); // 设置目标按钮状态
                 setUI('opt-deck', cfg.deck);
                 setUI('opt-time', cfg.time);
                 setUI('opt-life', cfg.life);
                 setUI('opt-rounds', cfg.rounds);
-
+                
+                // 加载配置后，必须刷新身份和数据
+                updateAppIdentity();
+                loadData();
+        
             } catch (e) {
                 console.error("Config load error", e);
+                loadData(); // 出错保底加载
             }
         }
         loadLastConfig();
