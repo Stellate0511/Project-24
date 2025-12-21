@@ -609,6 +609,77 @@
             display: flex; justify-content: center; z-index: 10; flex-shrink: 0;
         }
         .close-btn { width: 100%; max-width: 200px; border-color: var(--primary-color) !important; }
+
+        /* === 移动端/小屏 智能弹性布局 === */
+        @media (max-width: 600px), (max-height: 800px) {
+            
+            /* 1. 容器改为弹性分布 */
+            #start-screen {
+                /* 关键：使用 space-between 或 space-evenly 让元素垂直均匀分布 */
+                justify-content: space-evenly; 
+                padding: 60px 0 30px 0; /* 上下留出空间，避开顶部按钮和底部 */
+                height: 100%;           /* 确保占满高度 */
+                gap: 5px;               /* 最小间距保护 */
+            }
+
+            /* 2. 标题尺寸调整 */
+            h1 {
+                font-size: 1.8rem;
+                margin: 0;           /* 去掉 margin，完全由父容器分配空间 */
+                flex-shrink: 0;      /* 防止标题被压缩没了 */
+            }
+
+            /* 3. 选项组：移除外边距，改用弹性高度 */
+            .config-group {
+                margin: 0;           /* 移除 margin-bottom，交给父容器 gap 控制 */
+                width: 90%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                /* 允许稍微压缩，但不允许压得太扁 */
+                flex-shrink: 1;      
+            }
+
+            /* 4. 选项标题微调 */
+            .config-title {
+                margin-bottom: 4px;
+                font-size: 0.7rem;
+            }
+
+            /* 5. 按钮组样式 */
+            .btn-group button {
+                padding: 8px 0;      /* 保持适中的点击区域 */
+                font-size: 0.8rem;
+            }
+
+            /* 6. 启动按钮 */
+            #start-btn {
+                margin: 10px 0 0 0;
+                padding: 9px 40px;
+                display: block;
+                flex-shrink: 0;      /* 保证按钮不被压缩 */
+            }
+
+            /* 7. 顶部控件防遮挡 */
+            .top-controls { top: 10px; right: 10px; }
+            #profile-link { top: 10px; left: 10px; }
+            #profile-link img { width: 36px; height: 36px; }
+        }
+
+        /* === 紧急模式：针对极矮屏幕（如横屏手机） === */
+        /* 只有高度真的不够用了，才启用滚动条并顶端对齐 */
+        @media (max-height: 550px) {
+            #start-screen {
+                justify-content: flex-start;
+                overflow-y: auto;
+                padding-top: 60px;
+                gap: 10px;
+                display: block; /* 切换回 block 布局以便滚动 */
+                text-align: center;
+            }
+            .config-group { margin: 0 auto 10px auto; }
+            #start-btn { margin-bottom: 20px; }
+        }
     </style>
 </head>
     
