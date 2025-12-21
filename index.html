@@ -534,6 +534,81 @@
             /* 0.2秒快速抖动，覆盖原本的 transition */
             animation: shake-window 0.2s ease-in-out;
         }
+
+        /* === 教程界面样式 (独立命名空间，防止冲突) === */
+        #rules-ui {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--win-bg); z-index: 200;
+            flex-direction: column; border-radius: var(--radius-main); overflow: hidden;
+        }
+        
+        .rules-content {
+            flex: 1; padding: 20px 25px; overflow-y: auto; text-align: left;
+            scrollbar-width: thin; scrollbar-color: var(--secondary-color) transparent;
+        }
+        .rules-content::-webkit-scrollbar { width: 6px; }
+        .rules-content::-webkit-scrollbar-thumb { background-color: var(--secondary-color); border-radius: 4px; }
+        
+        /* 局部 Header 样式，不影响全局 H1 */
+        #rules-ui header { text-align: center; margin-bottom: 25px; border-bottom: 1px solid var(--secondary-color); padding-bottom: 15px; }
+        #rules-ui h1 { font-size: 1.8rem; border: none; margin-bottom: 5px; text-shadow: none; letter-spacing: 2px; }
+        
+        .subtitle { color: var(--secondary-color); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 10px; text-align: center; }
+        .target-badge { 
+            display: inline-block; background: var(--primary-color); color: var(--bg-color); 
+            padding: 4px 12px; font-size: 0.8rem; font-weight: bold; border-radius: 4px; 
+        }
+        html[data-theme="light"] .target-badge { color: #fff; }
+        
+        .rule-section { margin-bottom: 25px; }
+        .rule-section h2 { 
+            font-size: 1.1rem; color: var(--text-color); border-left: 4px solid var(--primary-color); 
+            padding-left: 10px; margin: 0 0 10px 0; text-transform: uppercase;
+        }
+        .rule-section h3 { font-size: 0.9rem; color: var(--secondary-color); margin: 5px 0; font-weight: bold; }
+        /* 防止全局 p 标签样式干扰 */
+        .rule-section p, .rule-section li { font-size: 0.85rem; line-height: 1.6; color: #888; margin: 5px 0; list-style-position: inside; }
+        html[data-theme="light"] .rule-section p, html[data-theme="light"] .rule-section li { color: #666; }
+        
+        .highlight { color: var(--primary-color); font-weight: bold; }
+        .success { color: var(--success-color); }
+        .danger { color: var(--alert-color); }
+        
+        /* 步骤网格 */
+        .step-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 500px) { .step-list { grid-template-columns: 1fr; } }
+        
+        .step { 
+            background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px; border: 1px dashed var(--secondary-color); 
+        }
+        html[data-theme="light"] .step { background: #f9f9f9; border: 1px dashed #ddd; }
+        
+        /* 规则卡片网格 (重命名为 rule-card 避免与游戏卡牌 .card 冲突) */
+        .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .rule-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+        
+        .rule-card { 
+            border: 1px solid var(--secondary-color); background: var(--card-bg); 
+            padding: 10px 5px; text-align: center; border-radius: var(--radius-main);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .rc-title { font-size: 0.75rem; color: var(--primary-color); font-weight: bold; margin-bottom: 4px; }
+        .rc-content { font-size: 0.7rem; color: var(--text-color); opacity: 0.8; line-height: 1.4; }
+        
+        .warning-section { 
+            border: 1px solid var(--alert-color); background: rgba(255, 42, 109, 0.05); 
+            padding: 15px; border-radius: var(--radius-main);
+        }
+        .warning-section p:last-child {
+            margin-bottom: 0;
+        }
+        html[data-theme="light"] .warning-section { background: #fff0f0; }
+        
+        .rules-footer {
+            padding: 15px; background: var(--win-bg); border-top: 1px solid var(--secondary-color);
+            display: flex; justify-content: center; z-index: 10; flex-shrink: 0;
+        }
+        .close-btn { width: 100%; max-width: 200px; border-color: var(--primary-color) !important; }
     </style>
 </head>
     
@@ -553,6 +628,9 @@
             <div class="top-controls">
                 <button id="lang-btn" onclick="toggleLanguage()" class="top-btn" data-i18n="lang_btn">
                     English
+                </button>
+                <button id="rules-btn" onclick="toggleRules()" class="top-btn" style="border-color: var(--secondary-color)" data-i18n="btn_help">
+                    HELP
                 </button>
                 <button id="theme-btn-main" onclick="toggleTheme()" class="top-btn" data-i18n="theme_btn">
                     点缀
@@ -651,6 +729,198 @@
             BUILD: 2025 // CREATOR: 点缀星空
         </div>
 
+        <div id="rules-ui">
+            <div id="rules-zh" class="rules-content" style="display: block;">
+                <header>
+                    <h1>游戏规则</h1>
+                </header>
+                
+                <div class="rule-section">
+                    <h2>🎯 核心目标</h2>
+                    <p>使用手牌中的数字，通过 <strong class="highlight">加减乘除</strong>（可任意使用括号、允许中间出现负数或小数）计算出 <strong class="highlight">24</strong>，并清空所有手牌。</p>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>📝 基本流程</h2>
+                    <div class="step-list">
+                        <div class="step">
+                            <h3>1. 出牌</h3>
+                            <p>选择 <strong class="highlight">2～4 张</strong>牌，点击 <strong>「执行」</strong>。</p>
+                        </div>
+                        <div class="step">
+                            <h3>2. 抽牌</h3>
+                            <p>不知道出什么时可以抽取一张牌加入手牌，手牌上限为 <strong class="highlight">10张</strong>。</p>
+                        </div>
+                        <div class="step">
+                            <h3>3. 执行</h3>
+                            <ul>
+                                <li><span class="success">成功</span>：计算出24，牌移除。</li>
+                                <li><span class="danger">失败</span>：无法算出24，扣除机会。</li>
+                            </ul>
+                        </div>
+                        <div class="step">
+                            <h3>4. 胜利</h3>
+                            <p>清空手牌即完成当前轮次。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>🃏 牌与牌库</h2>
+                    <div class="rule-grid">
+                        <div class="rule-card">
+                            <div class="rc-title">数值说明</div>
+                            <div class="rc-content">A=1, J=11, Q=12, K=13<br>小王=14, 大王=15</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">牌库模式</div>
+                            <div class="rc-content">
+                                <strong>简单</strong>：易解牌多<br>
+                                <strong>经典</strong>：标准扑克<br>
+                                <strong>标准</strong>：含大小王(14/15)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>⚙️ 游戏设置</h2>
+                    <h3>容错机会</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card"><div class="rc-title">极限</div><div class="rc-content">0 次机会，不允许失误</div></div>
+                        <div class="rule-card"><div class="rc-title">挑战</div><div class="rc-content">1 次机会</div></div>
+                        <div class="rule-card"><div class="rc-title">休闲</div><div class="rc-content">3 次机会</div></div>
+                    </div>
+                    
+                    <h3 style="margin-top:10px">计时模式</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card"><div class="rc-title">无尽</div><div class="rc-content">无限制，计时总耗时</div></div>
+                        <div class="rule-card"><div class="rc-title">沙漏</div><div class="rc-content">60秒倒计时，结束立刻失败</div></div>
+                        <div class="rule-card"><div class="rc-title">呼吸</div><div class="rc-content">10秒必须出一次，否则扣除机会</div></div>
+                    </div>
+
+                    <h3 style="margin-top:10px">赛程长度</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card"><div class="rc-title">无限</div><div class="rc-content">无限轮次，记录达成轮数</div></div>
+                        <div class="rule-card"><div class="rc-title">耐久</div><div class="rc-content">连续挑战 10 轮，挑战通关速度</div></div>
+                        <div class="rule-card"><div class="rc-title">基础</div><div class="rc-content">清空一次手牌即胜利</div></div>
+                    </div>
+                </div>
+                
+                <div class="rule-section warning-section">
+                    <h3 class="danger" style="margin-top:0">⚠️ 死局与提示</h3>
+                    <p><strong>死局：</strong>牌堆空且手牌无解时，立即判负。</p>
+                    <p><strong>提示：</strong>使用提示的对局将不计入最佳成绩。</p>
+                </div>
+            </div>
+        
+            <div id="rules-en" class="rules-content" style="display: none;">
+                <header>
+                    <h1>GAME RULES</h1>
+                </header>
+                
+                <div class="rule-section">
+                    <h2>🎯 OBJECTIVE</h2>
+                    <p>Use cards in hand to calculate <strong class="highlight">24</strong> using <strong class="highlight">+ - × ÷</strong> (parentheses, negatives, decimals allowed). Clear all cards to win.</p>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>📝 WORKFLOW</h2>
+                    <div class="step-list">
+                        <div class="step">
+                            <h3>1. PLAY</h3>
+                            <p>Select <strong class="highlight">2-4 cards</strong>, then click <strong>[EXECUTE]</strong>.</p>
+                        </div>
+                        <div class="step">
+                            <h3>2. DRAW</h3>
+                            <p>Draw a card when you are stuck. Hand limit is <strong class="highlight">10 cards</strong>.</p>
+                        </div>
+                        <div class="step">
+                            <h3>3. EXECUTE</h3>
+                            <ul>
+                                <li><span class="success">SUCCESS</span>: Result is 24. Cards removed.</li>
+                                <li><span class="danger">FAIL</span>: Result is not 24. Lose a chance.</li>
+                            </ul>
+                        </div>
+                        <div class="step">
+                            <h3>4. VICTORY</h3>
+                            <p>Clear all cards to complete the wave.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>🃏 CARDS & DECK</h2>
+                    <div class="rule-grid">
+                        <div class="rule-card">
+                            <div class="rc-title">VALUES</div>
+                            <div class="rc-content">A=1, J=11, Q=12, K=13<br>Joker(S)=14, Joker(L)=15</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">MODES</div>
+                            <div class="rc-content">
+                                <strong>SIMPLE</strong>: High frequency of easy numbers<br>
+                                <strong>CLASSIC</strong>: Standard 4 suits (A-K)<br>
+                                <strong>STANDARD</strong>: Adds Jokers (14/15)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rule-section">
+                    <h2>⚙️ SETTINGS</h2>
+                    <h3>TOLERANCE</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card"><div class="rc-title">EXTREME</div><div class="rc-content">0 Chances. No errors allowed.</div></div>
+                        <div class="rule-card"><div class="rc-title">STRICT</div><div class="rc-content">1 Chance.</div></div>
+                        <div class="rule-card"><div class="rc-title">CASUAL</div><div class="rc-content">3 Chances.</div></div>
+                    </div>
+                    
+                    <h3 style="margin-top:10px">TIMER</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card">
+                            <div class="rc-title">ENDLESS</div>
+                            <div class="rc-content">No time limit. Tracks elapsed time.</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">HOURGLASS</div>
+                            <div class="rc-content">60s countdown. Instant fail on timeout.</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">BREATHING</div>
+                            <div class="rc-content">10s per move. Timeout loses a chance.</div>
+                        </div>
+                    </div>
+        
+                    <h3 style="margin-top:10px">LENGTH</h3>
+                    <div class="rule-grid three-col">
+                        <div class="rule-card">
+                            <div class="rc-title">INFINITE</div>
+                            <div class="rc-content">Endless waves. Record: Max Waves.</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">STAMINA</div>
+                            <div class="rc-content">10 waves marathon. Record: Total Time.</div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rc-title">BASE</div>
+                            <div class="rc-content">Standard mode. Clear deck to win.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rule-section warning-section" style="margin-bottom: 0;">
+                    <h3 class="danger" style="margin-top:0">⚠️ DEAD END & HINT</h3>
+                    <p><strong>DEAD END:</strong> Instant loss if deck is empty & no moves left.</p>
+                    <p><strong>HINT:</strong> Using HINT invalidates the best record.</p>
+                </div>
+            </div>
+            
+            <div class="rules-footer">
+                <button onclick="toggleRules()" class="close-btn" data-i18n="btn_close_rules">关闭指南 / CLOSE</button>
+            </div>
+        </div>
+        
         <!-- 结算界面 -->
         <div id="game-over">
             <div id="end-title" class="title-failure" data-i18n="fail_title">FAILURE</div>
@@ -761,7 +1031,10 @@
                 mode_clears: "通关次数:",
                 theme_dark: "点缀",
                 theme_light: "星空",
-                lang_btn: "English"
+                lang_btn: "English",
+                
+                btn_help: "指南",
+                btn_close_rules: "关闭指南"
             },
             en: {
                 title: "PROJECT: 24",
@@ -842,7 +1115,10 @@
                 mode_clears: "MODE CLEARS:",
                 theme_dark: "CYBER",
                 theme_light: "CUTE",
-                lang_btn: "中文"
+                lang_btn: "中文",
+
+                btn_help: "HELP",
+                btn_close_rules: "CLOSE MANUAL"
             }
         };
 
@@ -1916,6 +2192,33 @@
         }
 
         initTheme();
+
+        function toggleRules() {
+            const ui = document.getElementById('rules-ui');
+            
+            // 1. 如果当前是开着的，就关掉
+            if (ui.style.display === 'flex') {
+                ui.style.display = 'none';
+                return;
+            }
+
+            // 2. 如果是关着的，准备打开
+            ui.style.display = 'flex';
+
+            // 3. 核心逻辑：根据当前语言 state.lang 决定显示哪个块
+            const zhBlock = document.getElementById('rules-zh');
+            const enBlock = document.getElementById('rules-en');
+
+            if (state.lang === 'zh') {
+                zhBlock.style.display = 'block';
+                enBlock.style.display = 'none';
+                zhBlock.scrollTop = 0; // 重置滚动条
+            } else {
+                zhBlock.style.display = 'none';
+                enBlock.style.display = 'block';
+                enBlock.scrollTop = 0; // 重置滚动条
+            }
+        }
     </script>
 </body>
 </html>
