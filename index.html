@@ -380,6 +380,39 @@
             margin-right: 5px;
         }
 
+        #game-ui {
+            position: relative;
+        }
+
+        #btn-all { 
+           position: absolute;    
+            right: 15px;
+            bottom: 15px;
+        
+            display: inline-flex;  
+            align-items: center;
+            gap: 6px;       
+
+            align-self: flex-end; 
+            width: auto;
+        
+            border-radius: var(--radius-main); 
+            
+            background: rgba(0, 243, 255, 0.15);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            
+            backdrop-filter: blur(4px);
+        }
+        
+        html[data-theme="light"] #btn-all {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: var(--primary-color);
+            color: var(--primary-color) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
+        }
+
         /* 暗色模式 Hover */
         #btn-all:hover { 
             background: var(--primary-color); 
@@ -609,10 +642,8 @@
             display: flex; justify-content: center; z-index: 10; flex-shrink: 0;
         }
         .close-btn { width: 100%; max-width: 200px; border-color: var(--primary-color) !important; }
-
-        /* === 移动端/小屏 智能弹性布局 === */
-        @media (max-width: 600px), (max-height: 800px) {
-            
+        
+        @media (max-width: 600px), (max-height: 800px) { 
             /* 1. 容器改为弹性分布 */
             #start-screen {
                 /* 关键：使用 space-between 或 space-evenly 让元素垂直均匀分布 */
@@ -790,14 +821,16 @@
                 <div id="timer-bar"></div>
             </div>
             <div id="card-container"></div>
+
+            <button id="btn-all" onclick="selectAllAndExec()">
+                <span class="key-hint">↵</span><span data-i18n="btn_all">ALL IN</span>
+            </button>
+            
             <div class="bottom-bar">
                 <div id="msg-display" data-i18n="msg_ready">SYSTEM READY</div>
+                
                 <button id="btn-clear" onclick="clearSelection()">
                     <span class="key-hint">ESC</span><span data-i18n="btn_clear">CLEAR</span>
-                </button>
-                
-                <button id="btn-all" onclick="selectAllAndExec()">
-                    <span class="key-hint">↵</span><span data-i18n="btn_all">ALL IN</span>
                 </button>
                 
                 <button id="btn-draw">
@@ -1053,6 +1086,8 @@
             baseFreq: 207.65, // #G3
             masterGain: null,
             compressor: null, // 新增：压缩器
+
+            muted: localStorage.getItem('p24_audio_muted') === 'true',
         
             init() {
                 if (this.ctx) return;
