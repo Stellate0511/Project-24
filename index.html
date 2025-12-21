@@ -369,27 +369,17 @@
         }
         html[data-theme="light"] .suggest { color: #fff !important; }
 
-        /* All In 按钮：默认暗色模式 (保留赛博蓝光) */
-        #btn-all {
-            display: none; 
-            border-color: var(--primary-color); 
-            color: var(--primary-color);
-            /* 注意：这里原先写死了青色背景和阴影 */
-            background: rgba(0, 243, 255, 0.1); 
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); 
-            margin-right: 5px;
-        }
-
         #game-ui {
             position: relative;
         }
 
         #btn-all { 
-           position: absolute;    
-            right: 15px;
+            display: none; 
+            
+            position: absolute;    
+            right: 20px;
             bottom: 15px;
         
-            display: inline-flex;  
             align-items: center;
             gap: 6px;       
 
@@ -440,6 +430,29 @@
             box-shadow: 0 5px 15px rgba(255, 143, 171, 0.6) !important;
         }
 
+        /* 利用 ID+类名 组合，强制复用全局 .suggest 的样式 */
+        #btn-all.suggest {
+            /* 1. 照搬全局 .suggest 的外观 */
+            background: var(--primary-color) !important;
+            color: #000 !important; 
+            border-color: #fff !important;
+            
+            /* 2. 复用全局已有的 pulse 动画 */
+            animation: pulse 1.5s infinite !important;
+            
+            /* 3. 覆盖掉 #btn-all 原本的阴影 */
+            box-shadow: 0 0 20px var(--primary-color) !important;
+            
+            /* 保持层级 */
+            z-index: 100 !important;
+        }
+        
+        /* 亮色模式适配 (复用逻辑) */
+        html[data-theme="light"] #btn-all.suggest {
+            background: var(--primary-color) !important;
+            color: #fff !important; 
+        }
+        
         #btn-clear { display: none; border-color: var(--alert-color); color: var(--alert-color); background: rgba(255, 42, 109, 0.1); margin-right: 5px; }
         #btn-clear:hover { background: var(--alert-color); color: #000; }
         html[data-theme="light"] #btn-clear { background: #fff; }
@@ -1376,6 +1389,7 @@
                 msg_loading: "数据加载中...",
                 msg_db_fail: "数据加载失败",
                 msg_no_moves: "无路可走 - 请抽牌",
+                msg_hint_all: "完美手牌 - 执行全部",
                 msg_deadlock: "死局 / 数据库延迟",
                 msg_legendary_sub: "发现无解牌组",
                 btn_review: "复盘",
@@ -1461,6 +1475,7 @@
                 msg_loading: "LOADING DATA...",
                 msg_db_fail: "DB LOAD FAIL",
                 msg_no_moves: "NO MOVES - DRAW CARD",
+                msg_hint_all: "PERFECT HAND - EXEC ALL",
                 msg_deadlock: "DEAD END / DB LAG",
                 msg_legendary_sub: "UNSOLVABLE HAND DETECTED",
                 btn_review: "REVIEW",
@@ -1863,6 +1878,7 @@ const ResultSequencer = {
             if(state.hand.length >= 10) return;
 
             $('btn-draw').classList.remove('suggest');
+            $('btn-all').classList.remove('suggest');
             setStatus("msg_ready", "var(--secondary-color)");
 
             for(let i=0; i<n; i++) {
@@ -2522,35 +2538,85 @@ const ResultSequencer = {
             }
         }
 
+        /* === 优化后的智能提示功能 === */
         function getHint() {
             if (!state.active || !isDbReady) return;
-
-            state.hintUsed = true;
-
-            clearSelection();
+        
+            state.hintUsed = true; // 标记使用了提示，不计入成绩
+        
+            // 0. 清除之前的视觉提示
             $('btn-draw').classList.remove('suggest');
-
+            $('btn-all').classList.remove('suggest');
+        
             const hand = state.hand;
-            const indices = hand.map((_, i) => i); 
-            const trySizes = [4, 3, 2]; 
-
-            for (let r of trySizes) {
-                let combos = getCombinations(indices, r);
-                shuffleArray(combos); 
+            
+            // === 逻辑 1: 检测 "All In" (全押) 机会 ===
+            // 如果手牌数量在 2-4 张之间，且全部加起来正好有解
+            if (hand.length >= 2 && hand.length <= 4) {
+                // 构建当前全手牌的 key
+                const allVals = hand.map(c => c.val).sort((a, b) => a - b).join(',');
                 
+                if (solutionDB.has(allVals)) {
+                    // 找到了全解！
+                    clearSelection(); // 取消当前的选择，视觉上更清爽
+                    
+                    // 高亮全押按钮
+                    const btnAll = $('btn-all');
+                    btnAll.classList.add('suggest');
+                    
+                    setStatus("msg_hint_all", "var(--primary-color)");
+                    return; // 结束，不再寻找部分解
+                }
+            }
+        
+            // === 逻辑 2: 寻找部分解 (基于玩家意图) ===
+            
+            // 1. 记录玩家当前已经选中的牌 ID (用于计算重合度)
+            const currentSelSet = new Set(state.selection);
+            
+            const indices = hand.map((_, i) => i);
+            const trySizes = [4, 3, 2]; // 优先找4张，再找3张...
+        
+            for (let r of trySizes) {
+                // 获取所有可能的组合索引
+                let combos = getCombinations(indices, r);
+                
+                // A. 先随机打乱，保证每次提示的解法不固定
+                shuffleArray(combos);
+        
+                // B. 【核心优化】如果玩家已经选了牌，对组合进行重排序
+                if (currentSelSet.size > 0) {
+                    combos.sort((a, b) => {
+                        // 计算组合 a 中有多少张牌是玩家当前选中的
+                        const overlapA = a.filter(idx => currentSelSet.has(hand[idx].id)).length;
+                        // 计算组合 b 中有多少张牌是玩家当前选中的
+                        const overlapB = b.filter(idx => currentSelSet.has(hand[idx].id)).length;
+                        
+                        // 降序排列：重合度高的排前面
+                        return overlapB - overlapA;
+                    });
+                }
+        
+                // C. 遍历检查解法
                 for (let comboIndices of combos) {
                     let candidateCards = comboIndices.map(i => hand[i]);
                     let values = candidateCards.map(c => c.val).sort((a, b) => a - b);
                     let key = values.join(',');
-
+        
                     if (solutionDB.has(key)) {
+                        // 找到了解法！
+                        
+                        // 先清除之前的选择（可能包含玩家选错的牌）
+                        clearSelection(); 
+                        
+                        // 选中算法推荐的牌
                         candidateCards.forEach(c => toggleSelect(c.id));
-                        // 这里不需要 setStatus 提示找到解，因为选中牌后视觉上已经很明显了
-                        return; 
+                        return; // 结束
                     }
                 }
             }
-
+        
+            // === 逻辑 3: 实在无解，提示抽牌 ===
             if (state.hand.length < 10) {
                 setStatus("msg_no_moves", "var(--primary-color)");
                 $('btn-draw').classList.add('suggest');
