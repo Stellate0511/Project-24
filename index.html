@@ -82,7 +82,7 @@
         #main-window {
             width: 95%; max-width: 800px;
             height: 90vh; height: 90dvh;
-            max-height: 750px; min-height: 500px;
+            max-height: 750px; min-height: 0;
             background: var(--win-bg);
             border: 1px solid var(--secondary-color);
             box-shadow: var(--shadow-glow);
@@ -697,19 +697,28 @@
             #profile-link img { width: 36px; height: 36px; }
         }
 
-        /* === 紧急模式：针对极矮屏幕（如横屏手机） === */
-        /* 只有高度真的不够用了，才启用滚动条并顶端对齐 */
+        /* === 修复：矮屏幕适配 (彻底解决无法滚动到底部的问题) === */
         @media (max-height: 550px) {
-            #start-screen {
-                justify-content: flex-start;
-                overflow-y: auto;
-                padding-top: 60px;
-                gap: 10px;
-                display: block; /* 切换回 block 布局以便滚动 */
-                text-align: center;
-            }
-            .config-group { margin: 0 auto 10px auto; }
-            #start-btn { margin-bottom: 20px; }
+
+        /* 关键：允许 start-screen 在 flex 布局里“变矮” */
+        #start-screen{
+            min-height: 0;           /* 没这句经常滚不动或滚不到底 */
+            flex: 1;
+            overflow-y: auto;
+            
+            /* 内容布局：从上开始排，避免居中导致上下浪费空间 */
+            justify-content: flex-start;
+        
+            /* 给顶部控件/头像留空间 */
+            padding-top: 70px;
+            padding-bottom: 20px;
+            gap: 8px;
+          }
+        
+          /* 标题/配置块不要被压扁到不可读 */
+          .config-group, h1, #start-btn{
+            flex-shrink: 0;
+          }
         }
     </style>
 </head>
