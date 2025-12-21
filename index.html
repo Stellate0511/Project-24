@@ -1602,35 +1602,7 @@ const ResultSequencer = {
             }
         });
 
-        $('start-btn').onclick = () => {
-            // 1. 收集当前选中的音符
-            const currentTones = [];
-            const groupOrder = ['opt-target', 'opt-deck', 'opt-time', 'opt-life', 'opt-rounds'];
-            
-            groupOrder.forEach((gid, gIndex) => {
-                const group = $(gid);
-                if (group) {
-                    // 找到当前active的按钮
-                    const activeBtn = group.querySelector('.active');
-                    if (activeBtn) {
-                        // 获取它在兄弟节点中的索引
-                        const btnIndex = Array.from(group.children).indexOf(activeBtn);
-                        // 计算音高
-                        const tone = (gIndex * 3) + btnIndex + 1;
-                        currentTones.push(tone);
-                    }
-                }
-            });
-        
-            // 2. 播放和弦 (5个音)
-            // 稍微带一点琶音效果 (staggered) 会更有仪式感
-            if (currentTones.length > 0) {
-                AudioSys.playChord(currentTones);
-            }
-        
-            // 3. 执行原来的开始逻辑
-            startGame();
-        };
+        $('start-btn').onclick = startGame;
         
         $('btn-draw').onclick = () => { drawCards(1); };
         $('btn-exec').onclick = execCards;
@@ -1680,6 +1652,31 @@ const ResultSequencer = {
 
         function startGame() {
             ResultSequencer.stop();
+
+            if (!AudioSys.muted) {
+                const currentTones = [];
+                const groupOrder = ['opt-target', 'opt-deck', 'opt-time', 'opt-life', 'opt-rounds'];
+                
+                groupOrder.forEach((gid, gIndex) => {
+                    const group = $(gid);
+                    if (group) {
+                        const activeBtn = group.querySelector('.active');
+                        if (activeBtn) {
+                            const btnIndex = Array.from(group.children).indexOf(activeBtn);
+                            // 计算音高: 1-15
+                            const tone = (gIndex * 3) + btnIndex + 1;
+                            currentTones.push(tone);
+                        }
+                    }
+                });
+
+                if (currentTones.length > 0) {
+                    // 稍微延迟 100ms 播放，避开按钮点击音，听起来更清晰
+                    setTimeout(() => {
+                        AudioSys.playChord(currentTones);
+                    }, 100);
+                }
+            }
             
             $('start-screen').style.display = 'none';
             $('game-over').style.display = 'none';
@@ -2803,15 +2800,9 @@ const ResultSequencer = {
             // 排除列表：这些按钮已经有专门的音效了，不需要播放基础 Click 音
             // 1. 首页的配置选项按钮 (在 .btn-group 内)
             if (btn.closest('.btn-group')) return;
-            
-            // 2. 启动按钮 (start-btn)
-            if (btn.id === 'start-btn') return;
         
-            // 3. 右上角的声音开关 (sound-btn) - 避免开关静音时听到声音
+            // 2. 右上角的声音开关 (sound-btn) - 避免开关静音时听到声音
             if (btn.id === 'sound-btn') return;
-        
-            // 4. (可选) 如果你觉得卡牌点击声音够了，可以排除卡牌
-            // 但卡牌是 div 不是 button，所以这里不用处理
         
             // === 播放基础机械音 ===
             AudioSys.playClick();
