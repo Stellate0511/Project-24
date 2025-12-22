@@ -1204,6 +1204,35 @@
                 return this.muted;
             },
 
+            playError() {
+                if (this.muted) return;
+                if (!this.ctx) this.init();
+        
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+        
+                // 正弦波保证了“润”
+                osc.type = 'sine';
+        
+                // 频率从高空(1200Hz) 极速下潜到 (200Hz)
+                // 这种快速的音高下滑是标准的“水滴声”物理特性
+                osc.frequency.setValueAtTime(1200, t);
+                osc.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+        
+                // 包络：非常短促
+                gain.gain.setValueAtTime(0, t);
+                // 音量给足，因为正弦波很温柔
+                gain.gain.linearRampToValueAtTime(0.8, t + 0.01); 
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+        
+                osc.start(t);
+                osc.stop(t + 0.15);
+            },
+
             // 普通按钮的机械点击音 (Tick)
             playClick() {
                 if (this.muted) return;
@@ -2303,6 +2332,10 @@ const ResultSequencer = {
         }
 
         function fail(reasonKey) {
+            if (AudioSys && typeof AudioSys.playError === 'function') {
+                AudioSys.playError();
+            }
+            
             state.chances--;
             updateStats();
             
@@ -2979,6 +3012,7 @@ const ResultSequencer = {
         
             // 2. 右上角的声音开关 (sound-btn) - 避免开关静音时听到声音
             if (btn.id === 'sound-btn') return;
+            if (btn.id === 'btn-exec') return;
         
             // === 播放基础机械音 ===
             AudioSys.playClick();
