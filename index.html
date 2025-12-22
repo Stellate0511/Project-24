@@ -502,6 +502,23 @@
         #review-display.mini-view .card { width: 50px; height: 75px; font-size: 1.4rem; border-width: 1px; }
         #review-display.mini-view .card.selected { transform: translateY(-8px) !important; }
 
+        #review-sol {
+            font-size: 1.1rem; 
+            color: var(--primary-color);
+            
+            /* === 新增/修改：强制不换行与居中 === */
+            white-space: nowrap;      /* 禁止换行 */
+            width: 90%;               /* 限制最大宽度，留出左右边距 */
+            max-width: 100%;          /* 防止撑破容器 */
+            margin: 0 auto;           /* 居中 */
+            text-align: center;       /* 文字居中 */
+            
+            /* 准备缩放 */
+            transform-origin: center; /* 从中心开始缩放 */
+            transition: transform 0.1s ease-out; /* 缩放时的平滑过渡 */
+            display: block;           /* 确保 transform 生效 */
+        }
+
         /* 头像挂件样式 (保持) */
         #profile-link {
             position: absolute; top: 20px; left: 20px;
@@ -2615,6 +2632,10 @@ const ResultSequencer = {
                             solDisplay.innerText = t('lbl_no_solution');
                             solDisplay.style.color = "var(--alert-color)";
                         }
+
+                        setTimeout(() => {
+                                fitText(solDisplay);
+                            }, 0);
                     }
                 };
                 list.appendChild(d);
@@ -3017,6 +3038,30 @@ const ResultSequencer = {
             // === 播放基础机械音 ===
             AudioSys.playClick();
         });
+
+        // === 自动缩放文本以适应容器 ===
+        function fitText(element) {
+            if (!element) return;
+        
+            // 1. 先重置缩放，才能获取真实的 scrollWidth
+            element.style.transform = 'scale(1)';
+            
+            // 2. 获取父容器的可用宽度 (减去一点 padding 缓冲)
+            // 这里假设父容器是 #review-detail，我们用 element 自己的宽度限制来算更简单
+            // 直接比较 元素内容的真实宽度(scrollWidth) 和 元素设定的显示宽度(offsetWidth)
+            
+            // 为了保险，我们用父元素的宽度作为基准
+            const parentWidth = element.parentElement.offsetWidth * 0.9; // 留 10% 边距
+            const contentWidth = element.scrollWidth;
+        
+            // 3. 如果内容比容器宽，计算缩放比例
+            if (contentWidth > parentWidth) {
+                const scale = parentWidth / contentWidth;
+                element.style.transform = `scale(${scale})`;
+            } else {
+                element.style.transform = 'scale(1)';
+            }
+        }
     </script>
 </body>
 </html>
