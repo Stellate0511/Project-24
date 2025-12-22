@@ -3262,10 +3262,6 @@
                             case '/': resVal = a.val / b.val; symbol = '÷'; break;
                         }
         
-                        if (!Number.isInteger(resVal)) {
-                            resVal = parseFloat(resVal.toFixed(2));
-                        }
-        
                         // === 逻辑变更 ===
                         // 1. 中间过程默认颜色逻辑：
                         //    第1步产生的中间数 -> step1 (颜色2/蓝)
@@ -3298,15 +3294,35 @@
                 return steps;
             },
         
-            renderStepRow(step) {
-                const fmt = (obj) => `<span class="${this.typeClass[obj.type]}">${obj.val}</span>`;
+           renderStepRow(step) {
+                // 内部格式化函数：负责 UI 上的“欺骗”
+                const formatVal = (obj) => {
+                    const v = obj.val;
+                    
+                    // 如果是最终结果(Final)，强制取整显示
+                    // 这样 23.999999 就会变成漂亮的 24
+                    if (obj.type === 'final') {
+                        return Math.round(v);
+                    }
+        
+                    // 如果是中间步骤且是小数，才保留2位显示
+                    // 注意：这只是为了好看，不影响上面的 val 真实值
+                    if (!Number.isInteger(v)) {
+                        return parseFloat(v.toFixed(2));
+                    }
+                    
+                    return v;
+                };
+        
+                const fmtHTML = (obj) => `<span class="${this.typeClass[obj.type]}">${formatVal(obj)}</span>`;
+        
                 return `
                     <div class="step-row">
-                        ${fmt(step.a)}
+                        ${fmtHTML(step.a)}
                         <span class="op-symbol">${step.op}</span>
-                        ${fmt(step.b)}
+                        ${fmtHTML(step.b)}
                         <span class="op-symbol">=</span>
-                        ${fmt(step.res)}
+                        ${fmtHTML(step.res)}
                     </div>
                 `;
             }
