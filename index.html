@@ -519,6 +519,59 @@
             display: block;           /* 确保 transform 生效 */
         }
 
+        /* === 步骤解析器样式 === */
+        #step-container {
+            width: 100%; max-width: 320px;
+            margin-top: 15px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+        }
+        
+        #btn-toggle-steps {
+            background: none; border: none;
+            color: var(--secondary-color);
+            font-size: 0.75rem; letter-spacing: 1px;
+            padding: 10px 0; width: 100%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            opacity: 0.7; transition: opacity 0.3s;
+        }
+        #btn-toggle-steps:hover { opacity: 1; color: var(--primary-color); }
+        #btn-toggle-steps svg { transition: transform 0.3s; }
+        #btn-toggle-steps.open svg { transform: rotate(180deg); }
+
+        #step-list {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0, 1, 0, 1); /* 丝滑折叠 */
+            display: flex; flex-direction: column; gap: 8px;
+            align-items: center;
+        }
+        #step-list.open { max-height: 300px; padding-bottom: 20px; }
+
+        .step-row {
+            font-family: var(--font-main);
+            font-size: 0.9rem; color: #888;
+            display: flex; align-items: center; gap: 4px;
+        }
+
+        /* === 核心颜色定义 === */
+        /* 颜色1: 原卡牌 (浅灰/白) */
+        .num-c1 { color: var(--text-color); font-weight: bold; }
+        /* 颜色2: 第一步结果 (淡蓝) */
+        .num-c2 { color: #4facfe; font-weight: bold; }
+        /* 颜色3: 第二步结果 (淡紫) */
+        .num-c3 { color: #a18cd1; font-weight: bold; }
+        /* 颜色4: 最终结果 (亮金/主色) */
+        .num-c4 { color: var(--primary-color); font-weight: bold; text-shadow: 0 0 5px rgba(0,243,255,0.3); }
+        
+        /* 运算符颜色 */
+        .op-symbol { color: var(--secondary-color); font-weight: normal; margin: 0 2px; }
+
+        /* 亮色模式微调 */
+        html[data-theme="light"] .num-c1 { color: #555; }
+        html[data-theme="light"] .num-c2 { color: #0096c7; }
+        html[data-theme="light"] .num-c3 { color: #7209b7; }
+        html[data-theme="light"] .num-c4 { text-shadow: 0 0 5px rgba(255, 105, 180, 0.4); }
+        html[data-theme="light"] #step-container { border-top: 1px dashed #ddd; }
+
         /* 头像挂件样式 (保持) */
         #profile-link {
             position: absolute; top: 20px; left: 20px;
@@ -1154,6 +1207,18 @@
                 <div id="review-display"></div>
                 <div id="lbl-sol" style="color:#555; font-size:0.7rem; margin-bottom:15px;" data-i18n="lbl_sol_data">SOLUTION DATA</div>
                 <div id="review-sol" style="font-size:1.1rem; color:var(--primary-color)">[DATA PENDING]</div>
+
+                <div id="step-container" style="display:none">
+                    <button id="btn-toggle-steps" onclick="toggleSteps()">
+                        <span data-i18n="btn_details">DETAILS</span>
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                        </svg>
+                    </button>
+                    <div id="step-list">
+                        </div>
+                </div>
+                
                 <button onclick="closeReview()" style="margin-top:30px; border-color:var(--alert-color)" data-i18n="btn_close">
                     CLOSE
                 </button>
@@ -1505,7 +1570,8 @@
                 lang_btn: "English",
                 
                 btn_help: "指南",
-                btn_close_rules: "关闭指南"
+                btn_close_rules: "关闭指南",
+                btn_details: "详细步骤"
             },
             en: {
                 profile_back: "HOME",
@@ -1591,7 +1657,8 @@
                 lang_btn: "中文",
 
                 btn_help: "HELP",
-                btn_close_rules: "CLOSE MANUAL"
+                btn_close_rules: "CLOSE MANUAL",
+                btn_details: "DETAILS"
             }
         };
 
@@ -1611,71 +1678,71 @@
         };
 
         // === 结算界面 爵士编曲器 (无限循环版) ===
-const ResultSequencer = {
-    timer: null,
-    sequence: [],    // 存储这一局的完整乐谱
-    currentIndex: 0, // 当前播放到了第几小节
-    isPlaying: false,
-
-    // 开始演奏
-    start(history) {
-        this.stop(); // 先重置
-
-        // 1. 提取所有成功的牌组，生成乐谱
-        this.sequence = history
-            .filter(h => h.status === 'success')
-            .map(h => h.cards);
-
-        // 如果一局都没赢，就不播了
-        if (this.sequence.length === 0) return;
-
-        this.isPlaying = true;
-        this.currentIndex = 0;
+        const ResultSequencer = {
+            timer: null,
+            sequence: [],    // 存储这一局的完整乐谱
+            currentIndex: 0, // 当前播放到了第几小节
+            isPlaying: false,
         
-        // 开始播放第一节
-        this.next();
-    },
-
-    // 停止演奏
-    stop() {
-        this.isPlaying = false;
-        clearTimeout(this.timer);
-        this.sequence = [];
-        this.currentIndex = 0;
-    },
-
-    // 调度下一节
-    next() {
-        if (!this.isPlaying || this.sequence.length === 0) return;
-
-        // 1. 获取当前指针指向的牌组
-        const cards = this.sequence[this.currentIndex];
-
-        // 2. 演奏 (带容错检测)
-        if (AudioSys && typeof AudioSys.playJazzArpeggio === 'function') {
-            AudioSys.playJazzArpeggio(cards);
-        }
-
-        // 3. 指针移动：实现无限循环的核心
-        // (当前 + 1) % 总长度 -> 这样到了末尾会自动回到 0
-        this.currentIndex = (this.currentIndex + 1) % this.sequence.length;
-
-        // 4. 计算呼吸间隔
-        let delay = 700 + Math.random() * 300; // 基础间隔 0.7s ~ 1.0s
-
-        // === 细节优化：循环分段 ===
-        // 如果指针回到了 0，说明刚播完一整轮
-        // 我们加一个较长的停顿 (2秒)，让听感像是一个“乐段”结束了，休息一下再开始
-        if (this.currentIndex === 0) {
-            delay += 500; 
-        }
-
-        // 5. 递归调用
-        this.timer = setTimeout(() => {
-            this.next();
-        }, delay);
-    }
-};
+            // 开始演奏
+            start(history) {
+                this.stop(); // 先重置
+        
+                // 1. 提取所有成功的牌组，生成乐谱
+                this.sequence = history
+                    .filter(h => h.status === 'success')
+                    .map(h => h.cards);
+        
+                // 如果一局都没赢，就不播了
+                if (this.sequence.length === 0) return;
+        
+                this.isPlaying = true;
+                this.currentIndex = 0;
+                
+                // 开始播放第一节
+                this.next();
+            },
+        
+            // 停止演奏
+            stop() {
+                this.isPlaying = false;
+                clearTimeout(this.timer);
+                this.sequence = [];
+                this.currentIndex = 0;
+            },
+        
+            // 调度下一节
+            next() {
+                if (!this.isPlaying || this.sequence.length === 0) return;
+        
+                // 1. 获取当前指针指向的牌组
+                const cards = this.sequence[this.currentIndex];
+        
+                // 2. 演奏 (带容错检测)
+                if (AudioSys && typeof AudioSys.playJazzArpeggio === 'function') {
+                    AudioSys.playJazzArpeggio(cards);
+                }
+        
+                // 3. 指针移动：实现无限循环的核心
+                // (当前 + 1) % 总长度 -> 这样到了末尾会自动回到 0
+                this.currentIndex = (this.currentIndex + 1) % this.sequence.length;
+        
+                // 4. 计算呼吸间隔
+                let delay = 700 + Math.random() * 300; // 基础间隔 0.7s ~ 1.0s
+        
+                // === 细节优化：循环分段 ===
+                // 如果指针回到了 0，说明刚播完一整轮
+                // 我们加一个较长的停顿 (2秒)，让听感像是一个“乐段”结束了，休息一下再开始
+                if (this.currentIndex === 0) {
+                    delay += 500; 
+                }
+        
+                // 5. 递归调用
+                this.timer = setTimeout(() => {
+                    this.next();
+                }, delay);
+            }
+        };
 
         const solutionDB = new Map();
         let isDbReady = false;
@@ -2628,9 +2695,19 @@ const ResultSequencer = {
                         if (h.sol) {
                             solDisplay.innerText = h.sol;
                             solDisplay.style.color = "var(--primary-color)";
+
+                            const stepHtml = StepAnalyzer.generateHTML(h.sol);
+                            $('step-list').innerHTML = stepHtml;
+                            $('step-container').style.display = 'block';
+                            
+                            // 重置折叠状态
+                            //$('step-list').classList.remove('open');
+                            //$('btn-toggle-steps').classList.remove('open');
                         } else {
                             solDisplay.innerText = t('lbl_no_solution');
                             solDisplay.style.color = "var(--alert-color)";
+                            
+                            $('step-container').style.display = 'none';
                         }
 
                         setTimeout(() => {
@@ -3061,6 +3138,165 @@ const ResultSequencer = {
             } else {
                 element.style.transform = 'scale(1)';
             }
+        }
+
+        // === 步骤解析与生成器 (修正版) ===
+        const StepAnalyzer = {
+            // 颜色类名映射
+            typeClass: {
+                'card': 'num-c1',  // 原卡牌 (白色)
+                'step1': 'num-c2', // 第一步结果 (淡蓝)
+                'step2': 'num-c3', // 第二步结果 (淡紫)
+                'final': 'num-c4'  // 最终结果 (金色)
+            },
+        
+            // 入口函数
+            generateHTML(solutionStr) {
+                if (!solutionStr) return '';
+        
+                // === 修复点 1：只取等号左边的部分 ===
+                // 如果字符串是 "3 * 8 = 24"，这就只取 "3 * 8"
+                // 这样最后的目标数字就不会干扰解析器了
+                let expressionPart = solutionStr.split('=')[0];
+        
+                // 预处理：替换符号，去除空格
+                const cleanStr = expressionPart.replace(/×/g, '*').replace(/÷/g, '/').replace(/\s+/g, '');
+                
+                try {
+                    const rpnQueue = this.toRPN(cleanStr);
+                    const steps = this.solveRPN(rpnQueue);
+                    return steps.map(step => this.renderStepRow(step)).join('');
+                } catch (e) {
+                    console.warn("Step analysis failed:", e);
+                    return '<div style="font-size:0.7rem; color:#666">步骤解析失败</div>';
+                }
+            },
+        
+            // ... toRPN 函数保持不变 ...
+            toRPN(str) {
+                const outputQueue = [];
+                const opStack = [];
+                const operators = { '+': 1, '-': 1, '*': 2, '/': 2 };
+                
+                const tokens = str.match(/(\d+(\.\d+)?)|[+\-*/()]/g);
+                if (!tokens) return []; // 容错
+        
+                tokens.forEach(token => {
+                    if (!isNaN(parseFloat(token))) {
+                        // 所有从字符串里解析出来的数字，最初都视为 "原卡牌"
+                        outputQueue.push({ val: parseFloat(token), type: 'card' }); 
+                    } else if ('+-*/'.includes(token)) {
+                        while (
+                            opStack.length &&
+                            opStack[opStack.length - 1] !== '(' &&
+                            operators[opStack[opStack.length - 1]] >= operators[token]
+                        ) {
+                            outputQueue.push(opStack.pop());
+                        }
+                        opStack.push(token);
+                    } else if (token === '(') {
+                        opStack.push(token);
+                    } else if (token === ')') {
+                        while (opStack.length && opStack[opStack.length - 1] !== '(') {
+                            outputQueue.push(opStack.pop());
+                        }
+                        opStack.pop(); 
+                    }
+                });
+                
+                while (opStack.length) outputQueue.push(opStack.pop());
+                return outputQueue;
+            },
+        
+            // === 修改后的 solveRPN 方法 ===
+            solveRPN(queue) {
+                const stack = [];
+                const steps = [];
+                let opCount = 0; 
+        
+                queue.forEach(item => {
+                    if (typeof item === 'object') {
+                        stack.push(item);
+                    } else {
+                        const b = stack.pop();
+                        const a = stack.pop();
+                        
+                        if (!a || !b) return;
+        
+                        opCount++;
+        
+                        let resVal = 0;
+                        let symbol = '';
+                        
+                        switch(item) {
+                            case '+': resVal = a.val + b.val; symbol = '+'; break;
+                            case '-': resVal = a.val - b.val; symbol = '-'; break;
+                            case '*': resVal = a.val * b.val; symbol = '×'; break;
+                            case '/': resVal = a.val / b.val; symbol = '÷'; break;
+                        }
+        
+                        if (!Number.isInteger(resVal)) {
+                            resVal = parseFloat(resVal.toFixed(2));
+                        }
+        
+                        // === 逻辑变更 ===
+                        // 1. 中间过程默认颜色逻辑：
+                        //    第1步产生的中间数 -> step1 (颜色2/蓝)
+                        //    第2步及以后产生的中间数 -> step2 (颜色3/紫)
+                        //    (注意：我们暂时不在这里决定 final，最后统一处理)
+                        let resType = (opCount >= 2) ? 'step2' : 'step1';
+        
+                        // 2. 构造步骤对象
+                        // 注意：这里我们创建一个独立的 res 对象存入 steps
+                        const stepObj = {
+                            a: a,
+                            b: b,
+                            op: symbol,
+                            res: { val: resVal, type: resType }
+                        };
+        
+                        steps.push(stepObj);
+        
+                        // 3. 结果入栈供下一步使用
+                        stack.push({ val: resVal, type: resType });
+                    }
+                });
+        
+                // === 关键修改：强制最后一步为 Final 颜色 ===
+                // 无论总共有几步，最后一步的结果一定是最终答案，赋予 num-c4 (金色)
+                if (steps.length > 0) {
+                    steps[steps.length - 1].res.type = 'final';
+                }
+        
+                return steps;
+            },
+        
+            renderStepRow(step) {
+                const fmt = (obj) => `<span class="${this.typeClass[obj.type]}">${obj.val}</span>`;
+                return `
+                    <div class="step-row">
+                        ${fmt(step.a)}
+                        <span class="op-symbol">${step.op}</span>
+                        ${fmt(step.b)}
+                        <span class="op-symbol">=</span>
+                        ${fmt(step.res)}
+                    </div>
+                `;
+            }
+        };
+
+        function toggleSteps() {
+            const list = $('step-list');
+            const btn = $('btn-toggle-steps');
+            if (list.classList.contains('open')) {
+                list.classList.remove('open');
+                btn.classList.remove('open');
+            } else {
+                list.classList.add('open');
+                btn.classList.add('open');
+            }
+            // 播放普通点击音效
+            AudioSys.playClick();
         }
     </script>
 </body>
